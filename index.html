@@ -256,16 +256,17 @@ function connectHomey(){
 }
 
 async function homeyGet(path){
-  const token = localStorage.getItem('homey_token');
-  const r = await fetch(`https://api.athom.com/v1/user/me/homey/${HOMEY_ID}${path}`, {
-    headers: { Authorization: `Bearer ${token}` }
+  const session = localStorage.getItem('homey_session_token');
+  const remoteUrl = localStorage.getItem('homey_remote_url');
+  const r = await fetch(`${remoteUrl}/api/manager${path}`, {
+    headers: { Authorization: `Bearer ${session}` }
   });
   return r.json();
 }
 
 async function loadHomey(){
-  const token = localStorage.getItem('homey_token');
-  if(!token) return;
+  const session = localStorage.getItem('homey_session_token');
+  if(!session) return;
 
   const btn = document.getElementById('homey-btn');
   btn.textContent = 'Koppla från Homey';
@@ -279,7 +280,7 @@ async function loadHomey(){
 
   // Närvaro
   try{
-    const users = await homeyGet('/users');
+    const users = await homeyGet('/users/user');
     const list = document.getElementById('presence-list');
     list.innerHTML = '';
     Object.values(users).forEach(u => {
@@ -290,7 +291,7 @@ async function loadHomey(){
           <div class="avatar ${home?'home':'away'}">${initials}</div>
           <div class="person-info">
             <div class="person-name">${u.name||'Okänd'}</div>
-            <div class="person-status">${home ? 'Hemma' : 'Borta'}</div>
+            <div class="person-status">${home?'Hemma':'Borta'}</div>
           </div>
           <div class="presence-dot ${home?'dot-home':'dot-away'}"></div>
         </div>`;
@@ -299,36 +300,48 @@ async function loadHomey(){
     document.getElementById('presence-badge').className = 'badge badge-ok';
   } catch(e){ console.warn('Presence error', e); }
 
-  // Enheter
+  // Sensorer & enheter
   try{
-    const devices = await homeyGet('/devices');
+    const devices = await homeyGet('/devices/device');
+    const devArr = Object.values(devices);
+
+    // Hitta sensorvärden
+    devArr.forEach(d => {
+      const caps = d.capabilitiesObj || {};
+      if(caps.measure_temperature) document.getElementById('s-temp').innerHTML = Math.round(caps.measure_temperature.value) + '<span class="sensor-unit">°C</span>';
+      if(caps.measure_humidity) document.getElementById('s-hum').innerHTML = Math.round(caps.measure_humidity.value) + '<span class="sensor-unit">%</span>';
+      if(caps.measure_power) document.getElementById('s-power').innerHTML = Math.round(caps.measure_power.value) + '<span class="sensor-unit">W</span>';
+      if(caps.alarm_contact) document.getElementById('s-door').textContent = caps.alarm_contact.value ? 'Öppen' : 'Stängd';
+    });
+
+    // Visa enheter med on/off
     const list = document.getElementById('device-list');
     list.innerHTML = '';
-    const devArr = Object.values(devices).slice(0, 6);
-    devArr.forEach(d => {
-      const isOn = d.capabilitiesObj?.onoff?.value;
-      const icon = d.class === 'light' ? '💡' : d.class === 'lock' ? '🔒' : d.class === 'thermostat' ? '🌡' : '🔌';
+    devArr.filter(d => d.capabilitiesObj?.onoff !== undefined).slice(0,6).forEach(d => {
+      const isOn = d.capabilitiesObj.onoff.value;
+      const icon = d.class==='light'?'💡':d.class==='lock'?'🔒':d.class==='thermostat'?'🌡':'🔌';
       list.innerHTML += `
         <div class="device">
           <div class="device-icon">${icon}</div>
           <div class="device-info">
             <div class="device-name">${d.name}</div>
-            <div class="device-state">${isOn ? 'På' : 'Av'}</div>
+            <div class="device-state">${isOn?'På':'Av'}</div>
           </div>
-          ${d.capabilitiesObj?.onoff !== undefined ? `<div class="toggle ${isOn?'on':''}" onclick="toggleDevice('${d.id}', ${!isOn}, this)"></div>` : ''}
+          <div class="toggle ${isOn?'on':''}" onclick="toggleDevice('${d.id}',${!isOn},this)"></div>
         </div>`;
     });
   } catch(e){ console.warn('Devices error', e); }
 }
 
 async function toggleDevice(id, newState, el){
-  const token = localStorage.getItem('homey_token');
+  const session = localStorage.getItem('homey_session_token');
+  const remoteUrl = localStorage.getItem('homey_remote_url');
   el.classList.toggle('on');
   try{
-    await fetch(`https://api.athom.com/v1/user/me/homey/${HOMEY_ID}/devices/${id}/capabilities/onoff`, {
+    await fetch(`${remoteUrl}/api/manager/devices/device/${id}/capability`, {
       method: 'PUT',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ value: newState })
+      headers: { Authorization: `Bearer ${session}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ capability: 'onoff', value: newState })
     });
   } catch(e){ el.classList.toggle('on'); }
 }
