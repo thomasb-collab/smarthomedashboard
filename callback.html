@@ -17,7 +17,7 @@
 </div>
 <script>
 const params = new URLSearchParams(window.location.search);
-const code = params.get('code');
+const code = params.get('code') || params.get('authorization_code');
 const CLIENT_ID = '69e112dec21a9fb1a2f64aa5';
 const HOMEY_ID = '5d93218fa2d1260c4cbd184d';
 
