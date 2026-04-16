@@ -26,13 +26,16 @@ if (!code) {
   document.getElementById('sub').textContent = 'Ingen code-parameter hittades i URL:en';
 } else {
   // Homey Cloud OAuth token exchange
-  fetch(`https://api.homey.app/v1/oauth2/token`, {
+  const basicAuth = btoa(CLIENT_ID + ':');
+  fetch(`https://api.athom.com/oauth2/token`, {
     method: 'POST',
-    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Authorization': `Basic ${basicAuth}`
+    },
     body: new URLSearchParams({
       grant_type: 'authorization_code',
-      client_id: CLIENT_ID,
-      code: code,
+      authorization_code: code,
       redirect_uri: `https://thomasb-collab.github.io/smarthomedashboard/callback.html`
     })
   })
