@@ -13,42 +13,65 @@
 <body>
 <div class="box">
   <h2 id="msg">Ansluter till Homey...</h2>
-  <p id="sub">Hämtar access token</p>
+  <p id="sub">Steg 1 av 4 — Hämtar token</p>
 </div>
 <script>
+const WORKER = 'https://spring-bird-4ad8.thomas-bodegrim.workers.dev';
 const params = new URLSearchParams(window.location.search);
-const code = params.get('code') || params.get('authorization_code');
-const CLIENT_ID = '69e112dec21a9fb1a2f64aa5';
-const HOMEY_ID = '5d93218fa2d1260c4cbd184d';
+const code = params.get('code');
 
-if (!code) {
-  document.getElementById('msg').textContent = 'Något gick fel';
-  document.getElementById('sub').textContent = 'Ingen code-parameter hittades i URL:en';
-} else {
-  // Homey Cloud OAuth token exchange
-  fetch(`https://spring-bird-4ad8.thomas-bodegrim.workers.dev/token`, {
+function setStatus(msg, sub) {
+  document.getElementById('msg').textContent = msg;
+  document.getElementById('sub').textContent = sub;
+}
+
+async function post(path, body) {
+  const r = await fetch(`${WORKER}${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ code })
-  })
-  .then(r => r.json())
-  .then(data => {
-    if (data.access_token) {
-      localStorage.setItem('homey_token', data.access_token);
-      localStorage.setItem('homey_id', HOMEY_ID);
-      document.getElementById('msg').textContent = 'Ansluten!';
-      document.getElementById('sub').textContent = 'Återgår till dashboarden...';
-      setTimeout(() => { window.location.href = './'; }, 1500);
-    } else {
-      document.getElementById('msg').textContent = 'Token-fel';
-      document.getElementById('sub').textContent = JSON.stringify(data);
-    }
-  })
-  .catch(e => {
-    document.getElementById('msg').textContent = 'Nätverksfel';
-    document.getElementById('sub').textContent = e.message;
+    body: JSON.stringify(body),
   });
+  return r.json();
 }
+
+async function connect() {
+  if (!code) { setStatus('Fel', 'Ingen code i URL:en'); return; }
+
+  // Steg 1: Byt code mot access_token
+  setStatus('Ansluter...', 'Steg 1 av 4 — Hämtar access token');
+  const tokenData = await post('/token', { code });
+  if (!tokenData.access_token) { setStatus('Token-fel', JSON.stringify(tokenData)); return; }
+  const { access_token, refresh_token } = tokenData;
+
+  // Steg 2: Hämta användarinfo + Homey remoteUrl
+  setStatus('Ansluter...', 'Steg 2 av 4 — Hämtar Homey-info');
+  const userInfo = await post('/userinfo', { access_token });
+  if (!userInfo.homeys?.length) { setStatus('Fel', 'Inga Homeys hittades'); return; }
+  const homey = userInfo.homeys[0];
+  const remote_url = homey.remoteUrl;
+
+  // Steg 3: Hämta delegation token
+  setStatus('Ansluter...', 'Steg 3 av 4 — Skapar delegation token');
+  const delegData = await post('/delegation', { access_token });
+  if (!delegData.delegation_token) { setStatus('Fel', JSON.stringify(delegData)); return; }
+  const { delegation_token } = delegData;
+
+  // Steg 4: Skapa Homey-session
+  setStatus('Ansluter...', 'Steg 4 av 4 — Skapar Homey-session');
+  const sessionData = await post('/session', { delegation_token, remote_url });
+  if (!sessionData.session_token) { setStatus('Fel', JSON.stringify(sessionData)); return; }
+
+  // Spara allt i localStorage
+  localStorage.setItem('homey_access_token', access_token);
+  localStorage.setItem('homey_refresh_token', refresh_token);
+  localStorage.setItem('homey_session_token', sessionData.session_token);
+  localStorage.setItem('homey_remote_url', remote_url);
+
+  setStatus('Ansluten!', 'Återgår till dashboarden...');
+  setTimeout(() => { window.location.href = './'; }, 1500);
+}
+
+connect();
 </script>
 </body>
 </html>
