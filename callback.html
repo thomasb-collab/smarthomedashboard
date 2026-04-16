@@ -26,18 +26,10 @@ if (!code) {
   document.getElementById('sub').textContent = 'Ingen code-parameter hittades i URL:en';
 } else {
   // Homey Cloud OAuth token exchange
-  const basicAuth = btoa(CLIENT_ID + ':');
-  fetch(`https://api.athom.com/oauth2/token`, {
+  fetch(`https://spring-bird-4ad8.thomas-bodegrim.workers.dev/token`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Authorization': `Basic ${basicAuth}`
-    },
-    body: new URLSearchParams({
-      grant_type: 'authorization_code',
-      authorization_code: code,
-      redirect_uri: `https://thomasb-collab.github.io/smarthomedashboard/callback.html`
-    })
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code })
   })
   .then(r => r.json())
   .then(data => {
