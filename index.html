@@ -280,7 +280,7 @@ async function loadHomey(){
 
   // Närvaro
   try{
-    const users = await homeyGet('/users/user');
+    const users = await homeyGet('/presence/presence');
     const list = document.getElementById('presence-list');
     list.innerHTML = `<div style="color:var(--muted);font-size:11px;word-break:break-all">${JSON.stringify(users)}</div>`;
   } catch(e){ console.warn('Presence error', e); }
