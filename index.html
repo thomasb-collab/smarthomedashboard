@@ -281,8 +281,10 @@ async function loadHomey(){
   // Närvaro
   try{
     const access_token = localStorage.getItem('homey_access_token');
-    const r = await fetch(`https://api.athom.com/v1/user/me/homey/${HOMEY_ID}/users`, {
-      headers: { Authorization: `Bearer ${access_token}` }
+    const r = await fetch(`${WORKER}/proxy`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ access_token, path: `/homey/${HOMEY_ID}/users` })
     });
     const users = await r.json();
     const list = document.getElementById('presence-list');
