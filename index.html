@@ -221,7 +221,7 @@
 const CLIENT_ID = '69e112dec21a9fb1a2f64aa5';
 const HOMEY_ID = '5d93218fa2d1260c4cbd184d';
 const REDIRECT_URI = 'https://thomasb-collab.github.io/smarthomedashboard/callback.html';
-const AUTH_URL = `https://api.homey.app/v1/oauth2/authorize?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=homey.device.readonly+homey.device.control+homey.presence.readonly+homey.zone.readonly`;
+const AUTH_URL = `https://api.athom.com/oauth2/authorise?authorization_type=code&client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
 
 const weatherCodes = {0:'Klart',1:'Mestadels klart',2:'Delvis molnigt',3:'Mulet',45:'Dimma',48:'Isbildande dimma',51:'Lätt duggregn',53:'Måttligt duggregn',61:'Lätt regn',63:'Måttligt regn',65:'Kraftigt regn',71:'Lätt snö',73:'Måttlig snö',75:'Kraftig snö',80:'Skurar',81:'Måttliga skurar',95:'Åska'};
 
@@ -257,7 +257,7 @@ function connectHomey(){
 
 async function homeyGet(path){
   const token = localStorage.getItem('homey_token');
-  const r = await fetch(`https://api.homey.app/v1/user/me/homey/${HOMEY_ID}${path}`, {
+  const r = await fetch(`https://api.athom.com/v1/user/me/homey/${HOMEY_ID}${path}`, {
     headers: { Authorization: `Bearer ${token}` }
   });
   return r.json();
@@ -325,7 +325,7 @@ async function toggleDevice(id, newState, el){
   const token = localStorage.getItem('homey_token');
   el.classList.toggle('on');
   try{
-    await fetch(`https://api.homey.app/v1/user/me/homey/${HOMEY_ID}/devices/${id}/capabilities/onoff`, {
+    await fetch(`https://api.athom.com/v1/user/me/homey/${HOMEY_ID}/devices/${id}/capabilities/onoff`, {
       method: 'PUT',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ value: newState })
