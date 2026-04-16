@@ -161,7 +161,7 @@ const CLIENT_ID = '69e112dec21a9fb1a2f64aa5';
 const HOMEY_ID = '5d93218fa2d1260c4cbd184d';
 const WORKER = 'https://spring-bird-4ad8.thomas-bodegrim.workers.dev';
 const REDIRECT_URI = 'https://thomasb-collab.github.io/smarthomedashboard/callback.html';
-const AUTH_URL = `https://api.athom.com/oauth2/authorise?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`;
+const AUTH_URL = `https://api.athom.com/oauth2/authorise?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=homey.device.readonly+homey.device.control+homey.presence.readonly+homey.zone.readonly`;
 
 const weatherCodes = {0:'Klart',1:'Mestadels klart',2:'Delvis molnigt',3:'Mulet',45:'Dimma',51:'Lätt duggregn',53:'Måttligt duggregn',61:'Lätt regn',63:'Måttligt regn',65:'Kraftigt regn',71:'Lätt snö',73:'Måttlig snö',75:'Kraftig snö',80:'Skurar',95:'Åska'};
 
@@ -235,16 +235,11 @@ async function loadHomey(){
 
   // Närvaro via Worker proxy med access_token
   try{
-    const access_token = localStorage.getItem('homey_access_token');
-    const users = await workerPost('/proxy',{
-      access_token,
-      path: `/homey/${HOMEY_ID}/users`
-    });
+    const presenceData = await homeyGet('/users/user');
     const list = document.getElementById('presence-list');
-    if(users && typeof users === 'object' && !users.error){
+    if(presenceData && !presenceData.error){
       list.innerHTML = '';
-      const arr = Array.isArray(users) ? users : Object.values(users);
-      arr.forEach(u => {
+      Object.values(presenceData).forEach(u => {
         const initials = (u.name||u.firstname||'?').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
         const home = u.present === true;
         list.innerHTML += `
@@ -258,7 +253,7 @@ async function loadHomey(){
           </div>`;
       });
     } else {
-      list.innerHTML = `<div style="color:var(--muted);font-size:11px;word-break:break-all">${JSON.stringify(users)}</div>`;
+      list.innerHTML = `<div style="color:var(--muted);font-size:11px;word-break:break-all">${JSON.stringify(presenceData)}</div>`;
     }
     document.getElementById('presence-badge').textContent = 'Live';
     document.getElementById('presence-badge').className = 'badge badge-ok';
