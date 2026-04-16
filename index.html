@@ -280,7 +280,11 @@ async function loadHomey(){
 
   // Närvaro
   try{
-    const users = await homeyGet('/presence/presence');
+    const access_token = localStorage.getItem('homey_access_token');
+    const r = await fetch(`https://api.athom.com/v1/user/me/homey/${HOMEY_ID}/users`, {
+      headers: { Authorization: `Bearer ${access_token}` }
+    });
+    const users = await r.json();
     const list = document.getElementById('presence-list');
     list.innerHTML = `<div style="color:var(--muted);font-size:11px;word-break:break-all">${JSON.stringify(users)}</div>`;
   } catch(e){ console.warn('Presence error', e); }
