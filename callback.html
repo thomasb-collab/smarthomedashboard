@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<title>Homey — Ansluter...</title>
+<style>
+  body{background:#0f1117;color:#e8eaf0;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
+  .box{text-align:center;max-width:400px;padding:2rem}
+  h2{font-weight:500;margin-bottom:.5rem}
+  p{color:#8b90a7;font-size:14px}
+</style>
+</head>
+<body>
+<div class="box">
+  <h2 id="msg">Ansluter till Homey...</h2>
+  <p id="sub">Hämtar access token</p>
+</div>
+<script>
+const params = new URLSearchParams(window.location.search);
+const code = params.get('code');
+const CLIENT_ID = '69e112dec21a9fb1a2f64aa5';
+const HOMEY_ID = '5d93218fa2d1260c4cbd184d';
+
+if (!code) {
+  document.getElementById('msg').textContent = 'Något gick fel';
+  document.getElementById('sub').textContent = 'Ingen code-parameter hittades i URL:en';
+} else {
+  // Homey Cloud OAuth token exchange
+  fetch(`https://api.homey.app/v1/oauth2/token`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: new URLSearchParams({
+      grant_type: 'authorization_code',
+      client_id: CLIENT_ID,
+      code: code,
+      redirect_uri: `https://thomasb-collab.github.io/smarthomedashboard/callback.html`
+    })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.access_token) {
+      localStorage.setItem('homey_token', data.access_token);
+      localStorage.setItem('homey_id', HOMEY_ID);
+      document.getElementById('msg').textContent = 'Ansluten!';
+      document.getElementById('sub').textContent = 'Återgår till dashboarden...';
+      setTimeout(() => { window.location.href = './'; }, 1500);
+    } else {
+      document.getElementById('msg').textContent = 'Token-fel';
+      document.getElementById('sub').textContent = JSON.stringify(data);
+    }
+  })
+  .catch(e => {
+    document.getElementById('msg').textContent = 'Nätverksfel';
+    document.getElementById('sub').textContent = e.message;
+  });
+}
+</script>
+</body>
+</html>
