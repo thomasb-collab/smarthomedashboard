@@ -282,22 +282,7 @@ async function loadHomey(){
   try{
     const users = await homeyGet('/users/user');
     const list = document.getElementById('presence-list');
-    list.innerHTML = '';
-    Object.values(users).forEach(u => {
-      const initials = (u.name||'?').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
-      const home = u.present;
-      list.innerHTML += `
-        <div class="person">
-          <div class="avatar ${home?'home':'away'}">${initials}</div>
-          <div class="person-info">
-            <div class="person-name">${u.name||'Okänd'}</div>
-            <div class="person-status">${home?'Hemma':'Borta'}</div>
-          </div>
-          <div class="presence-dot ${home?'dot-home':'dot-away'}"></div>
-        </div>`;
-    });
-    document.getElementById('presence-badge').textContent = 'Live';
-    document.getElementById('presence-badge').className = 'badge badge-ok';
+    list.innerHTML = `<div style="color:var(--muted);font-size:11px;word-break:break-all">${JSON.stringify(users)}</div>`;
   } catch(e){ console.warn('Presence error', e); }
 
   // Sensorer & enheter
