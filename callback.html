@@ -46,9 +46,10 @@ async function connect() {
   // Steg 2: Hämta användarinfo + Homey remoteUrl
   setStatus('Ansluter...', 'Steg 2 av 4 — Hämtar Homey-info');
   const userInfo = await post('/userinfo', { access_token });
-  if (!userInfo.homeys?.length) { setStatus('Fel', 'Inga Homeys hittades'); return; }
-  const homey = userInfo.homeys[0];
-  const remote_url = homey.remoteUrl;
+  const homeys = userInfo.homeys || userInfo.devices || [];
+  if (!homeys.length) { setStatus('Fel', 'Inga Homeys: ' + JSON.stringify(userInfo).substring(0,200)); return; }
+  const homey = homeys[0];
+  const remote_url = homey.remoteUrl || homey.remoteUrlSecure;
 
   // Steg 3: Hämta delegation token
   setStatus('Ansluter...', 'Steg 3 av 4 — Skapar delegation token');
