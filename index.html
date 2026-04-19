@@ -267,53 +267,34 @@ async function fetchCalendar(){
 }
 fetchCalendar();setInterval(fetchCalendar,300000);
 
-function connectHomey(){
-  const session=localStorage.getItem('homey_session_token');
-  if(session){
-    ['homey_session_token','homey_access_token','homey_refresh_token','homey_remote_url'].forEach(k=>localStorage.removeItem(k));
-    location.reload();return;
-  }
-  window.location.href=AUTH_URL;
-}
-
-async function homeyGet(path){
-  const session=localStorage.getItem('homey_session_token');
-  const remoteUrl=localStorage.getItem('homey_remote_url');
-  const r=await fetch(`${remoteUrl}/api/manager${path}`,{headers:{Authorization:`Bearer ${session}`}});
-  return r.json();
-}
-
 async function loadHomey(){
-  const session=localStorage.getItem('homey_session_token');
-  if(!session)return;
-  document.getElementById('homey-btn').textContent='Koppla från';
-  document.getElementById('homey-btn').classList.add('connected');
   document.getElementById('status-homey').textContent='Ansluten';
   document.getElementById('status-homey').style.color='var(--accent2)';
   document.getElementById('sensor-badge').textContent='Live';
   document.getElementById('sensor-badge').className='badge badge-ok';
   document.getElementById('device-badge').textContent='Live';
   document.getElementById('device-badge').className='badge badge-ok';
+  document.getElementById('homey-btn').style.display='none';
 
   try{
-    const presenceData=await homeyGet('/users/user');
+    const users = await (await fetch(`${WORKER}/homey/users`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).json();
     const list=document.getElementById('presence-list');
-    if(presenceData&&!presenceData.error){
+    if(users&&!users.error){
       list.innerHTML='';
-      Object.values(presenceData).forEach(u=>{
+      Object.values(users).forEach(u=>{
         const initials=(u.name||u.firstname||'?').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
         const home=u.present===true;
         list.innerHTML+=`<div class="person"><div class="avatar ${home?'home':'away'}">${initials}</div><div class="person-info"><div class="person-name">${u.name||u.firstname||'Okänd'}</div><div class="person-status">${home?'Hemma':'Borta'}</div></div><div class="presence-dot ${home?'dot-home':'dot-away'}"></div></div>`;
       });
     }else{
-      list.innerHTML=`<div style="color:var(--muted);font-size:11px">${JSON.stringify(presenceData)}</div>`;
+      list.innerHTML=`<div style="color:var(--muted);font-size:11px">${JSON.stringify(users)}</div>`;
     }
     document.getElementById('presence-badge').textContent='Live';
     document.getElementById('presence-badge').className='badge badge-ok';
   }catch(e){console.warn('Presence',e)}
 
   try{
-    const devices=await homeyGet('/devices/device');
+    const devices=await (await fetch(`${WORKER}/homey/devices`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'})).json();
     const devArr=Object.values(devices);
     devArr.forEach(d=>{
       const caps=d.capabilitiesObj||{};
@@ -333,17 +314,17 @@ async function loadHomey(){
 }
 
 async function toggleDevice(id,newState,el){
-  const session=localStorage.getItem('homey_session_token');
-  const remoteUrl=localStorage.getItem('homey_remote_url');
   el.classList.toggle('on');
   try{
-    await fetch(`${remoteUrl}/api/manager/devices/device/${id}/capability`,{
-      method:'PUT',
-      headers:{Authorization:`Bearer ${session}`,'Content-Type':'application/json'},
-      body:JSON.stringify({capability:'onoff',value:newState})
+    await fetch(`${WORKER}/homey/control`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({deviceId:id,capability:'onoff',value:newState})
     });
   }catch(e){el.classList.toggle('on')}
 }
+
+function connectHomey(){}
 
 loadHomey();
 </script>
