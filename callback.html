@@ -51,7 +51,9 @@ async function connect() {
   // Steg 3: Hämta delegation token
   setStatus('Ansluter...', 'Steg 3 av 4 — Skapar delegation token');
   const delegData = await post('/delegation', { access_token });
-  if (!delegData.delegation_token) { setStatus('Fel', JSON.stringify(delegData)); return; }
+  setStatus('Debug steg 3', JSON.stringify(delegData).substring(0, 300));
+  await new Promise(r => setTimeout(r, 6000));
+  if (!delegData.delegation_token) { setStatus('Fel steg 3', JSON.stringify(delegData)); return; }
   const delegation_token = delegData.delegation_token;
 
   // Steg 4: Skapa Homey-session
