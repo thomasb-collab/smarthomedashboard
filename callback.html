@@ -13,7 +13,7 @@
 <body>
 <div class="box">
   <h2 id="msg">Ansluter till Homey...</h2>
-  <p id="sub">Steg 1 av 4 — Hämtar token</p>
+  <p id="sub">Startar...</p>
 </div>
 <script>
 const WORKER = 'https://spring-bird-4ad8.thomas-bodegrim.workers.dev';
@@ -37,39 +37,36 @@ async function post(path, body) {
 async function connect() {
   if (!code) { setStatus('Fel', 'Ingen code i URL:en'); return; }
 
-  // Steg 1: Byt code mot access_token
-  setStatus('Ansluter...', 'Steg 1 av 4 — Hämtar access token');
+  setStatus('Steg 1', 'Hämtar access token...');
   const tokenData = await post('/token', { code });
   if (!tokenData.access_token) { setStatus('Token-fel', JSON.stringify(tokenData)); return; }
   const { access_token, refresh_token } = tokenData;
 
-  // Steg 2: Använd hårdkodat Homey ID
-  setStatus('Ansluter...', 'Steg 2 av 4 — Hämtar Homey-info');
+  setStatus('Steg 2', 'Hårdkodar Homey URL...');
+  await new Promise(r => setTimeout(r, 100));
   const remote_url = 'https://5d93218fa2d1260c4cbd184d.connect.athom.com';
-  setStatus('Debug', `remoteUrl: ${remote_url} | keys: ${Object.keys(homey).join(', ')}`);
 
-  // Steg 3: Hämta delegation token
+  setStatus('Steg 3', 'Skapar delegation token...');
   await new Promise(r => setTimeout(r, 100));
-  setStatus('Ansluter...', 'Steg 3 av 4 — Skapar delegation token');
-  await new Promise(r => setTimeout(r, 100));
-  const delegData = await post('/delegation', { access_token });
-  if (!delegData.delegation_token) { setStatus('Fel', JSON.stringify(delegData)); return; }
-  const { delegation_token } = delegData;
+  let delegation_token;
+  try {
+    const delegData = await post('/delegation', { access_token });
+    if (!delegData.delegation_token) { setStatus('Delegation-fel', JSON.stringify(delegData).substring(0,200)); return; }
+    delegation_token = delegData.delegation_token;
+  } catch(e) { setStatus('Delegation-fel', e.message); return; }
 
-  // Steg 4: Skapa Homey-session med timeout
-  setStatus('Ansluter...', 'Steg 4 av 4 — Skapar Homey-session');
+  setStatus('Steg 4', 'Skapar Homey-session...');
+  await new Promise(r => setTimeout(r, 100));
   try {
     const ctrl = new AbortController();
-    const tid = setTimeout(() => ctrl.abort(), 10000);
+    setTimeout(() => ctrl.abort(), 10000);
     const r = await fetch(`${WORKER}/session`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ delegation_token, remote_url }),
       signal: ctrl.signal
     });
-    clearTimeout(tid);
     const sessionData = await r.json();
-
     if (sessionData.session_token) {
       localStorage.setItem('homey_session_token', sessionData.session_token);
       localStorage.setItem('homey_remote_url', remote_url);
@@ -81,8 +78,7 @@ async function connect() {
       setStatus('Session-fel', JSON.stringify(sessionData).substring(0,200));
     }
   } catch(e) {
-    // Timeout eller annat fel — spara vad vi har och fortsätt
-    setStatus('Session timeout', 'Fortsätter utan lokal session...');
+    setStatus('Session timeout — sparar tokens', e.message);
     localStorage.setItem('homey_access_token', access_token);
     localStorage.setItem('homey_refresh_token', refresh_token);
     localStorage.setItem('homey_remote_url', remote_url);
