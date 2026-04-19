@@ -1,239 +1,78 @@
-const CLIENT_ID = '69e112dec21a9fb1a2f64aa5';
-const CLIENT_SECRET = '9e00eb56b33665d96f76f95720936fe7';
-const REDIRECT_URI = 'https://thomasb-collab.github.io/smarthomedashboard/callback.html';
-const ALLOWED_ORIGIN = 'https://thomasb-collab.github.io';
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<title>Homey — Ansluter...</title>
+<style>
+  body{background:#0f1117;color:#e8eaf0;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
+  .box{text-align:center;max-width:400px;padding:2rem}
+  h2{font-weight:500;margin-bottom:.5rem}
+  p{color:#8b90a7;font-size:14px}
+</style>
+</head>
+<body>
+<div class="box">
+  <h2 id="msg">Ansluter till Homey...</h2>
+  <p id="sub">Steg 1 av 4 — Hämtar token</p>
+</div>
+<script>
+const WORKER = 'https://spring-bird-4ad8.thomas-bodegrim.workers.dev';
+const params = new URLSearchParams(window.location.search);
+const code = params.get('code');
 
-const cors = {
-  'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
-};
-
-function json(data, status = 200) {
-  return new Response(JSON.stringify(data), { status, headers: { ...cors, 'Content-Type': 'application/json' } });
+function setStatus(msg, sub) {
+  document.getElementById('msg').textContent = msg;
+  document.getElementById('sub').textContent = sub;
 }
 
-function md5(str) {
-  function safeAdd(x,y){const lsw=(x&0xffff)+(y&0xffff);return(((x>>16)+(y>>16)+(lsw>>16))<<16)|(lsw&0xffff)}
-  function bitRotateLeft(num,cnt){return(num<<cnt)|(num>>>(32-cnt))}
-  function md5cmn(q,a,b,x,s,t){return safeAdd(bitRotateLeft(safeAdd(safeAdd(a,q),safeAdd(x,t)),s),b)}
-  function md5ff(a,b,c,d,x,s,t){return md5cmn((b&c)|((~b)&d),a,b,x,s,t)}
-  function md5gg(a,b,c,d,x,s,t){return md5cmn((b&d)|(c&(~d)),a,b,x,s,t)}
-  function md5hh(a,b,c,d,x,s,t){return md5cmn(b^c^d,a,b,x,s,t)}
-  function md5ii(a,b,c,d,x,s,t){return md5cmn(c^(b|(~d)),a,b,x,s,t)}
-  const bytes = new TextEncoder().encode(str);
-  const len = bytes.length;
-  const nblk = ((len+8)>>6)+1;
-  const blks = new Int32Array(nblk*16);
-  for(let i=0;i<len;i++) blks[i>>2]|=bytes[i]<<((i%4)*8);
-  blks[len>>2]|=0x80<<((len%4)*8);
-  blks[nblk*16-2]=len*8;
-  let a=1732584193,b=-271733879,c=-1732584194,d=271733878;
-  for(let i=0;i<blks.length;i+=16){
-    const [oa,ob,oc,od]=[a,b,c,d];
-    a=md5ff(a,b,c,d,blks[i],7,-680876936);d=md5ff(d,a,b,c,blks[i+1],12,-389564586);c=md5ff(c,d,a,b,blks[i+2],17,606105819);b=md5ff(b,c,d,a,blks[i+3],22,-1044525330);
-    a=md5ff(a,b,c,d,blks[i+4],7,-176418897);d=md5ff(d,a,b,c,blks[i+5],12,1200080426);c=md5ff(c,d,a,b,blks[i+6],17,-1473231341);b=md5ff(b,c,d,a,blks[i+7],22,-45705983);
-    a=md5ff(a,b,c,d,blks[i+8],7,1770035416);d=md5ff(d,a,b,c,blks[i+9],12,-1958414417);c=md5ff(c,d,a,b,blks[i+10],17,-42063);b=md5ff(b,c,d,a,blks[i+11],22,-1990404162);
-    a=md5ff(a,b,c,d,blks[i+12],7,1804603682);d=md5ff(d,a,b,c,blks[i+13],12,-40341101);c=md5ff(c,d,a,b,blks[i+14],17,-1502002290);b=md5ff(b,c,d,a,blks[i+15],22,1236535329);
-    a=md5gg(a,b,c,d,blks[i+1],5,-165796510);d=md5gg(d,a,b,c,blks[i+6],9,-1069501632);c=md5gg(c,d,a,b,blks[i+11],14,643717713);b=md5gg(b,c,d,a,blks[i],20,-373897302);
-    a=md5gg(a,b,c,d,blks[i+5],5,-701558691);d=md5gg(d,a,b,c,blks[i+10],9,38016083);c=md5gg(c,d,a,b,blks[i+15],14,-660478335);b=md5gg(b,c,d,a,blks[i+4],20,-405537848);
-    a=md5gg(a,b,c,d,blks[i+9],5,568446438);d=md5gg(d,a,b,c,blks[i+14],9,-1019803690);c=md5gg(c,d,a,b,blks[i+3],14,-187363961);b=md5gg(b,c,d,a,blks[i+8],20,1163531501);
-    a=md5gg(a,b,c,d,blks[i+13],5,-1444681467);d=md5gg(d,a,b,c,blks[i+2],9,-51403784);c=md5gg(c,d,a,b,blks[i+7],14,1735328473);b=md5gg(b,c,d,a,blks[i+12],20,-1926607734);
-    a=md5hh(a,b,c,d,blks[i+5],4,-378558);d=md5hh(d,a,b,c,blks[i+8],11,-2022574463);c=md5hh(c,d,a,b,blks[i+11],16,1839030562);b=md5hh(b,c,d,a,blks[i+14],23,-35309556);
-    a=md5hh(a,b,c,d,blks[i+1],4,-1530992060);d=md5hh(d,a,b,c,blks[i+4],11,1272893353);c=md5hh(c,d,a,b,blks[i+7],16,-155497632);b=md5hh(b,c,d,a,blks[i+10],23,-1094730640);
-    a=md5hh(a,b,c,d,blks[i+13],4,681279174);d=md5hh(d,a,b,c,blks[i],11,-358537222);c=md5hh(c,d,a,b,blks[i+3],16,-722521979);b=md5hh(b,c,d,a,blks[i+6],23,76029189);
-    a=md5hh(a,b,c,d,blks[i+9],4,-640364487);d=md5hh(d,a,b,c,blks[i+12],11,-421815835);c=md5hh(c,d,a,b,blks[i+15],16,530742520);b=md5hh(b,c,d,a,blks[i+2],23,-995338651);
-    a=md5ii(a,b,c,d,blks[i],6,-198630844);d=md5ii(d,a,b,c,blks[i+7],10,1126891415);c=md5ii(c,d,a,b,blks[i+14],15,-1416354905);b=md5ii(b,c,d,a,blks[i+5],21,-57434055);
-    a=md5ii(a,b,c,d,blks[i+12],6,1700485571);d=md5ii(d,a,b,c,blks[i+3],10,-1894986606);c=md5ii(c,d,a,b,blks[i+10],15,-1051523);b=md5ii(b,c,d,a,blks[i+1],21,-2054922799);
-    a=md5ii(a,b,c,d,blks[i+8],6,1873313359);d=md5ii(d,a,b,c,blks[i+15],10,-30611744);c=md5ii(c,d,a,b,blks[i+6],15,-1560198380);b=md5ii(b,c,d,a,blks[i+13],21,1309151649);
-    a=md5ii(a,b,c,d,blks[i+4],6,-145523070);d=md5ii(d,a,b,c,blks[i+11],10,-1120210379);c=md5ii(c,d,a,b,blks[i+2],15,718787259);b=md5ii(b,c,d,a,blks[i+9],21,-343485551);
-    a=safeAdd(a,oa);b=safeAdd(b,ob);c=safeAdd(c,oc);d=safeAdd(d,od);
-  }
-  return [a,b,c,d].map(n=>Array.from({length:4},(_,i)=>((n>>(i*8))&0xff).toString(16).padStart(2,'0')).join('')).join('');
-}
-
-async function tapoLogin(email, password) {
-  const res = await fetch('https://eu-wap.tplinkcloud.com', {
+async function post(path, body) {
+  const r = await fetch(`${WORKER}${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      method: 'login',
-      params: {
-        appType: 'Tapo_Ios',
-        cloudUserName: email,
-        cloudPassword: password,
-        terminalUUID: '88888888-4444-4444-4444-121212121212',
-      }
-    })
+    body: JSON.stringify(body),
   });
-  return res.json();
+  return r.json();
 }
 
-async function tapoGetDevices(token) {
-  const res = await fetch(`https://eu-wap.tplinkcloud.com?token=${token}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ method: 'getDeviceList' })
-  });
-  return res.json();
+async function connect() {
+  if (!code) { setStatus('Fel', 'Ingen code i URL:en'); return; }
+
+  // Steg 1: Byt code mot access_token
+  setStatus('Ansluter...', 'Steg 1 av 4 — Hämtar access token');
+  const tokenData = await post('/token', { code });
+  if (!tokenData.access_token) { setStatus('Token-fel', JSON.stringify(tokenData)); return; }
+  const { access_token, refresh_token } = tokenData;
+
+  // Steg 2: Hämta användarinfo + Homey remoteUrl
+  setStatus('Ansluter...', 'Steg 2 av 4 — Hämtar Homey-info');
+  const userInfo = await post('/userinfo', { access_token });
+  const homeys = userInfo.homeys || userInfo.devices || userInfo.homeyList || [];
+  if (!homeys.length) { setStatus('Fel', 'Inga Homeys: ' + JSON.stringify(userInfo).substring(0,300)); return; }
+  const homey = homeys[0];
+  const remote_url = homey.remoteUrl || homey.remoteUrlSecure;
+
+  // Steg 3: Hämta delegation token
+  setStatus('Ansluter...', 'Steg 3 av 4 — Skapar delegation token');
+  const delegData = await post('/delegation', { access_token });
+  if (!delegData.delegation_token) { setStatus('Fel', JSON.stringify(delegData)); return; }
+  const { delegation_token } = delegData;
+
+  // Steg 4: Skapa Homey-session
+  setStatus('Ansluter...', 'Steg 4 av 4 — Skapar Homey-session');
+  const sessionData = await post('/session', { delegation_token, remote_url });
+  if (!sessionData.session_token) { setStatus('Fel', JSON.stringify(sessionData)); return; }
+
+  // Spara allt i localStorage
+  localStorage.setItem('homey_access_token', access_token);
+  localStorage.setItem('homey_refresh_token', refresh_token);
+  localStorage.setItem('homey_session_token', sessionData.session_token);
+  localStorage.setItem('homey_remote_url', remote_url);
+
+  setStatus('Ansluten!', 'Återgår till dashboarden...');
+  setTimeout(() => { window.location.href = './'; }, 1500);
 }
 
-export default {
-  async fetch(request, env) {
-    if (request.method === 'OPTIONS') return new Response(null, { headers: cors });
-    if (request.method !== 'POST') return new Response('Method not allowed', { status: 405 });
-
-    const url = new URL(request.url);
-    const basicAuth = btoa(`${CLIENT_ID}:${CLIENT_SECRET}`);
-
-    // Homey: Token exchange
-    if (url.pathname === '/token') {
-      const { code } = await request.json();
-      if (!code) return json({ error: 'missing code' }, 400);
-      const res = await fetch('https://api.athom.com/oauth2/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': `Basic ${basicAuth}` },
-        body: new URLSearchParams({ grant_type: 'authorization_code', code }),
-      });
-      return json(await res.json(), res.status);
-    }
-
-    // Homey: User info + hämta Homeys separat
-    if (url.pathname === '/userinfo') {
-      const { access_token } = await request.json();
-      const userRes = await fetch('https://api.athom.com/user/me', { headers: { Authorization: `Bearer ${access_token}` } });
-      const user = await userRes.json();
-      // Hämta Homeys separat
-      const homeyRes = await fetch('https://api.athom.com/user/me/homey', { headers: { Authorization: `Bearer ${access_token}` } });
-      const homeys = await homeyRes.json();
-      user.homeys = Array.isArray(homeys) ? homeys : (homeys.data || [homeys]);
-      return json(user, userRes.status);
-    }
-
-    // Homey: Delegation token
-    if (url.pathname === '/delegation') {
-      const { access_token } = await request.json();
-      const res = await fetch('https://api.athom.com/delegation/token?audience=homey', {
-        method: 'POST', headers: { Authorization: `Bearer ${access_token}` }
-      });
-      return json({ delegation_token: await res.json() }, res.status);
-    }
-
-    // Homey: Session
-    if (url.pathname === '/session') {
-      const { delegation_token, remote_url } = await request.json();
-      const res = await fetch(`${remote_url}/api/manager/users/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: delegation_token }),
-      });
-      return json({ session_token: await res.json() }, res.status);
-    }
-
-    // Homey: Refresh token
-    if (url.pathname === '/refresh') {
-      const { refresh_token } = await request.json();
-      const res = await fetch('https://api.athom.com/oauth2/token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Authorization': `Basic ${basicAuth}` },
-        body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token }),
-      });
-      return json(await res.json(), res.status);
-    }
-
-    // Homey: Proxy
-    if (url.pathname === '/proxy') {
-      const { access_token, path } = await request.json();
-      const res = await fetch(`https://api.athom.com${path}`, { headers: { Authorization: `Bearer ${access_token}` } });
-      return json(await res.json(), res.status);
-    }
-
-    // Tapo: Hämta enheter + token
-    if (url.pathname === '/tapo/devices') {
-      const email = env.TAPO_EMAIL;
-      const password = env.TAPO_PASSWORD;
-      if (!email || !password) return json({ error: 'Tapo credentials not configured' }, 500);
-
-      const loginData = await tapoLogin(email, password);
-      if (loginData.error_code !== 0) return json({ error: 'Tapo login failed', detail: loginData }, 401);
-
-      const token = loginData.result.token;
-      const devicesData = await tapoGetDevices(token);
-      if (devicesData.error_code !== 0) return json({ error: 'Failed to get devices', detail: devicesData }, 500);
-
-      const cameras = devicesData.result.deviceList.filter(d =>
-        d.deviceType === 'SMART.IPCAMERA' || d.alias?.toLowerCase().includes('cam') || d.deviceModel?.includes('C2') || d.deviceModel?.includes('C5')
-      );
-
-      return json({ token, cameras });
-    }
-
-    // Tapo: Hämta snapshot för en kamera
-    if (url.pathname === '/tapo/snapshot') {
-      const { deviceId, token } = await request.json();
-      if (!deviceId || !token) return json({ error: 'missing params' }, 400);
-
-      const res = await fetch(`https://eu-wap.tplinkcloud.com?token=${token}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          method: 'passthrough',
-          params: {
-            deviceId,
-            requestData: JSON.stringify({
-              method: 'getLiveView',
-              params: { channel_no: 0 }
-            })
-          }
-        })
-      });
-      const data = await res.json();
-      return json(data);
-    }
-
-    // Kalender: Hämta och parsa ICS
-    if (url.pathname === '/calendar') {
-      const ICS_URL = 'https://outlook.office365.com/owa/calendar/0f523e6290ae488989624ae7a18e89ec@du.se/7aff595abc8648e381dd02dcf30f0ade8775481750895708982/calendar.ics';
-      const res = await fetch(ICS_URL);
-      const ics = await res.text();
-
-      const events = [];
-      const blocks = ics.split('BEGIN:VEVENT');
-      blocks.shift();
-
-      for (const block of blocks) {
-        const get = (key) => {
-          const match = block.match(new RegExp(`${key}[^:]*:([^\r\n]+)`));
-          return match ? match[1].trim() : '';
-        };
-
-        const dtstart = get('DTSTART');
-        const dtend = get('DTEND');
-        const summary = get('SUMMARY');
-        const location = get('LOCATION');
-
-        if (!summary || !dtstart) continue;
-
-        const parseDate = (str) => {
-          if (str.length === 8) return new Date(`${str.slice(0,4)}-${str.slice(4,6)}-${str.slice(6,8)}`);
-          return new Date(`${str.slice(0,4)}-${str.slice(4,6)}-${str.slice(6,8)}T${str.slice(9,11)}:${str.slice(11,13)}:${str.slice(13,15)}Z`);
-        };
-
-        const start = parseDate(dtstart.replace(/[TZ]/g, m => m === 'T' ? 'T' : 'Z'));
-        if (isNaN(start)) continue;
-
-        events.push({ summary, start: start.toISOString(), location });
-      }
-
-      // Sortera och returnera kommande 7 dagar
-      const now = new Date();
-      const week = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-      const upcoming = events
-        .filter(e => new Date(e.start) >= now && new Date(e.start) <= week)
-        .sort((a, b) => new Date(a.start) - new Date(b.start))
-        .slice(0, 10);
-
-      return json({ events: upcoming });
-    }
-  },
-};
+connect();
+</script>
+</body>
+</html>
