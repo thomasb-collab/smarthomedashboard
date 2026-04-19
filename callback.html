@@ -46,6 +46,8 @@ async function connect() {
   // Steg 2: Hämta användarinfo + Homey remoteUrl
   setStatus('Ansluter...', 'Steg 2 av 4 — Hämtar Homey-info');
   const userInfo = await post('/userinfo', { access_token });
+  setStatus('Debug steg 2', JSON.stringify(userInfo).substring(0, 300));
+  await new Promise(r => setTimeout(r, 5000));
   const homeys = userInfo.homeys || [];
   if (!homeys.length) { setStatus('Fel', 'Inga Homeys: ' + JSON.stringify(userInfo).substring(0,200)); return; }
   const homey = homeys[0];
