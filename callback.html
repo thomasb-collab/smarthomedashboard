@@ -50,6 +50,7 @@ async function connect() {
   if (!homeys.length) { setStatus('Fel', 'Inga Homeys: ' + JSON.stringify(userInfo).substring(0,200)); return; }
   const homey = homeys[0];
   const remote_url = homey.remoteUrl || homey.localUrlSecure || homey.localUrl;
+  setStatus('Debug', `remoteUrl: ${remote_url} | keys: ${Object.keys(homey).join(', ')}`);
 
   // Steg 3: Hämta delegation token
   setStatus('Ansluter...', 'Steg 3 av 4 — Skapar delegation token');
