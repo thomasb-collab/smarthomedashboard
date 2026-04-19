@@ -5,89 +5,146 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Smart Home Dashboard</title>
 <style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  :root{
-    --bg:#0f1117;--surface:#1a1d27;--surface2:#22263a;--border:#2e3348;
-    --text:#e8eaf0;--muted:#8b90a7;--accent:#4f8ef7;--accent2:#34d399;
-    --warn:#f59e0b;--danger:#f87171;--radius:12px;--gap:14px;
-  }
-  body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;font-size:14px;min-height:100vh;display:flex;flex-direction:column}
-  header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border);background:var(--surface)}
-  .logo{font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px}
-  .clock{font-size:20px;font-weight:600;font-variant-numeric:tabular-nums}
-  .date{font-size:12px;color:var(--muted);text-align:right}
-  .btn-connect{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:7px 14px;font-size:13px;cursor:pointer;font-weight:500}
-  .btn-connect.connected{background:#0d2e1e;color:var(--accent2)}
-  main{display:grid;grid-template-columns:1fr 1fr 1fr;grid-template-rows:auto auto auto;gap:var(--gap);padding:var(--gap);flex:1}
-  .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;display:flex;flex-direction:column;gap:10px}
-  .card-header{display:flex;align-items:center;justify-content:space-between}
-  .card-title{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-weight:500}
-  .badge{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:500}
-  .badge-ok{background:#0d2e1e;color:var(--accent2)}
-  .badge-warn{background:#2d1f00;color:var(--warn)}
-  .badge-off{background:#1e1e2e;color:var(--muted)}
-  .badge-live{background:#1e0a0a;color:var(--danger)}
-  .cam-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;flex:1}
-  .cam-feed{background:var(--surface2);border:1px solid var(--border);border-radius:8px;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px}
-  .cam-label{font-size:11px;color:var(--muted)}
-  .person-list{display:flex;flex-direction:column;gap:8px}
-  .person{display:flex;align-items:center;gap:10px}
-  .avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0}
-  .avatar.home{background:#0d2e1e;color:var(--accent2)}
-  .avatar.away{background:#1e1e2e;color:var(--muted)}
-  .person-info{flex:1}
-  .person-name{font-size:13px;font-weight:500}
-  .person-status{font-size:11px;color:var(--muted)}
-  .presence-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-  .dot-home{background:var(--accent2)}
-  .dot-away{background:var(--muted)}
-  .weather-main{display:flex;align-items:flex-end;gap:16px}
-  .weather-temp{font-size:48px;font-weight:300;line-height:1}
-  .weather-desc{font-size:14px;font-weight:500}
-  .weather-sub{font-size:12px;color:var(--muted);margin-top:2px}
-  .weather-row{display:flex;gap:8px}
-  .weather-chip{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;flex:1;text-align:center}
-  .weather-chip span{display:block;color:var(--muted);font-size:10px;margin-bottom:2px}
-  .sensor-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  .sensor{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px}
-  .sensor-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
-  .sensor-value{font-size:22px;font-weight:600;margin-top:2px}
-  .sensor-unit{font-size:12px;font-weight:400;color:var(--muted)}
-  .event-list{display:flex;flex-direction:column;gap:8px}
-  .event{display:flex;gap:10px;align-items:flex-start}
-  .event-time-col{text-align:right;flex-shrink:0;width:42px}
-  .event-time{font-size:12px;color:var(--accent);font-variant-numeric:tabular-nums}
-  .event-date{font-size:10px;color:var(--muted)}
-  .event-bar{width:2px;background:var(--accent);border-radius:2px;align-self:stretch;flex-shrink:0;opacity:.5}
-  .event-title{font-size:13px;font-weight:500;line-height:1.3}
-  .event-sub{font-size:11px;color:var(--muted)}
-  .device-list{display:flex;flex-direction:column;gap:8px}
-  .device{display:flex;align-items:center;gap:10px}
-  .device-icon{width:32px;height:32px;border-radius:8px;background:var(--surface2);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:15px}
-  .device-info{flex:1}
-  .device-name{font-size:13px;font-weight:500}
-  .device-state{font-size:11px;color:var(--muted)}
-  .toggle{width:36px;height:20px;background:var(--surface2);border-radius:20px;border:1px solid var(--border);cursor:pointer;position:relative;transition:background .2s;flex-shrink:0}
-  .toggle.on{background:var(--accent)}
-  .toggle::after{content:'';width:14px;height:14px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:left .2s}
-  .toggle.on::after{left:18px}
-  .card-cameras{grid-column:1/3;grid-row:1/3}
-  .card-weather{grid-column:3/4}
-  .card-presence{grid-column:3/4}
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f0f2f7;
+  --surface:rgba(255,255,255,0.45);
+  --surface2:rgba(255,255,255,0.3);
+  --border:rgba(255,255,255,0.45);
+  --text:#1a1d2e;
+  --muted:#6b7280;
+  --accent:#4f6ef7;
+  --accent2:#10b981;
+  --warn:#f59e0b;
+  --danger:#ef4444;
+  --radius:16px;
+  --gap:14px;
+  --shadow:0 2px 8px rgba(0,0,0,.08), 0 8px 32px rgba(0,0,0,.08);
+}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:system-ui,sans-serif;
+  font-size:14px;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  position:relative;
+}
+body::before{
+  content:'';
+  position:fixed;
+  inset:0;
+  z-index:0;
+  background:
+    radial-gradient(ellipse 80% 60% at 10% 20%, #c7d2fe 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 85% 10%, #fbcfe8 0%, transparent 55%),
+    radial-gradient(ellipse 70% 60% at 50% 90%, #a5f3fc 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 90% 80%, #bbf7d0 0%, transparent 50%),
+    radial-gradient(ellipse 40% 30% at 20% 70%, #fde68a 0%, transparent 50%);
+  background-color:#f0f4ff;
+  filter:blur(40px) saturate(1.4);
+}
+header,main,.status-bar{position:relative;z-index:1}
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:rgba(255,255,255,0.7);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.5);position:sticky;top:0;z-index:10}
+.logo{font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--accent)}
+.logo svg{stroke:var(--accent)}
+.header-right{display:flex;align-items:center;gap:16px}
+.clock{font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--text)}
+.date{font-size:11px;color:var(--muted);text-align:right}
+.btn-connect{background:var(--accent);color:#fff;border:none;border-radius:10px;padding:8px 16px;font-size:13px;cursor:pointer;font-weight:500;transition:opacity .2s}
+.btn-connect:hover{opacity:.85}
+.btn-connect.connected{background:#ecfdf5;color:var(--accent2);border:1px solid #a7f3d0}
+main{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--gap);padding:var(--gap);flex:1}
+@media(max-width:900px){main{grid-template-columns:1fr 1fr}}
+@media(max-width:580px){main{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--shadow);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.card-header{display:flex;align-items:center;justify-content:space-between}
+.card-title{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-weight:600}
+.badge{font-size:10px;padding:3px 9px;border-radius:20px;font-weight:600}
+.badge-ok{background:#ecfdf5;color:#059669}
+.badge-warn{background:#fffbeb;color:#d97706}
+.badge-off{background:#f1f5f9;color:#94a3b8}
+.badge-live{background:#fef2f2;color:var(--danger);display:flex;align-items:center;gap:4px}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--danger);animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.cam-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;flex:1}
+.cam-feed{background:var(--surface2);border:1px solid var(--border);border-radius:10px;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;cursor:pointer;transition:border-color .2s,box-shadow .2s}
+.cam-feed:hover{border-color:var(--accent);box-shadow:0 0 0 3px rgba(79,110,247,.1)}
+.cam-label{font-size:11px;color:var(--muted);font-weight:500}
+.card-cameras{grid-column:1/3;grid-row:1/3}
+@media(max-width:900px){.card-cameras{grid-column:1/3}}
+@media(max-width:580px){.card-cameras{grid-column:1}}
+.weather-main{display:flex;align-items:center;gap:16px}
+.weather-temp{font-size:52px;font-weight:200;line-height:1;color:var(--text)}
+.weather-desc{font-size:15px;font-weight:600;color:var(--text)}
+.weather-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.weather-row{display:flex;gap:8px}
+.weather-chip{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:8px 10px;font-size:12px;flex:1;text-align:center}
+.weather-chip span{display:block;color:var(--muted);font-size:10px;margin-bottom:2px;font-weight:500}
+.weather-chip b{font-weight:600;color:var(--text)}
+.person-list{display:flex;flex-direction:column;gap:10px}
+.person{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:var(--surface2);border:1px solid var(--border)}
+.avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.avatar.home{background:#ecfdf5;color:#059669}
+.avatar.away{background:#f1f5f9;color:#94a3b8}
+.person-info{flex:1}
+.person-name{font-size:13px;font-weight:600}
+.person-status{font-size:11px;color:var(--muted)}
+.presence-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot-home{background:var(--accent2)}
+.dot-away{background:#cbd5e1}
+.sensor-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sensor{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px}
+.sensor-icon{font-size:18px;margin-bottom:4px}
+.sensor-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+.sensor-value{font-size:24px;font-weight:700;margin-top:2px;color:var(--text)}
+.sensor-unit{font-size:13px;font-weight:400;color:var(--muted)}
+.event-list{display:flex;flex-direction:column;gap:8px}
+.event{display:flex;gap:10px;align-items:flex-start;padding:8px 10px;border-radius:10px;background:var(--surface2);border:1px solid var(--border)}
+.event-time-col{text-align:right;flex-shrink:0;width:48px}
+.event-time{font-size:12px;color:var(--accent);font-weight:600;font-variant-numeric:tabular-nums}
+.event-date{font-size:10px;color:var(--muted)}
+.event-bar{width:3px;background:var(--accent);border-radius:3px;align-self:stretch;flex-shrink:0;opacity:.4}
+.event-title{font-size:13px;font-weight:600;line-height:1.3}
+.event-sub{font-size:11px;color:var(--muted);margin-top:1px}
+.device-list{display:flex;flex-direction:column;gap:8px}
+.device{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:10px;background:var(--surface2);border:1px solid var(--border)}
+.device-icon{width:34px;height:34px;border-radius:10px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px}
+.device-info{flex:1}
+.device-name{font-size:13px;font-weight:600}
+.device-state{font-size:11px;color:var(--muted)}
+.toggle{width:40px;height:22px;background:#e2e8f0;border-radius:20px;border:none;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;outline:none}
+.toggle.on{background:var(--accent)}
+.toggle::after{content:'';width:16px;height:16px;background:#fff;border-radius:50%;position:absolute;top:3px;left:3px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle.on::after{left:21px}
+.card-weather{grid-column:3/4}
+.card-presence{grid-column:3/4}
+.card-sensors{grid-column:1/2}
+.card-calendar{grid-column:2/3}
+.card-devices{grid-column:3/4}
+@media(max-width:900px){
+  .card-cameras{grid-column:1/3}
+  .card-weather{grid-column:1/2}
+  .card-presence{grid-column:2/3}
   .card-sensors{grid-column:1/2}
   .card-calendar{grid-column:2/3}
-  .card-devices{grid-column:3/4}
-  .status-bar{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);padding:8px 20px;border-top:1px solid var(--border);background:var(--surface)}
-  .status-dot{width:6px;height:6px;border-radius:50%;background:var(--accent2)}
+  .card-devices{grid-column:1/3}
+}
+@media(max-width:580px){
+  .card-cameras,.card-weather,.card-presence,.card-sensors,.card-calendar,.card-devices{grid-column:1}
+}
+.status-bar{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted);padding:8px 20px;border-top:1px solid rgba(255,255,255,0.5);background:rgba(255,255,255,0.7);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);flex-wrap:wrap}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--accent2)}
 </style>
 </head>
 <body>
 <header>
   <div class="logo">
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
     Smart Home
   </div>
-  <div style="display:flex;align-items:center;gap:20px">
+  <div class="header-right">
     <button class="btn-connect" id="homey-btn" onclick="connectHomey()">Anslut Homey</button>
     <div>
       <div class="clock" id="clock">--:--:--</div>
@@ -98,12 +155,10 @@
 
 <main>
   <div class="card card-cameras">
-    <div class="card-header"><span class="card-title">Kameror</span><span class="badge badge-live">● LIVE</span></div>
+    <div class="card-header"><span class="card-title">Kameror</span><span class="badge badge-live"><span class="live-dot"></span>Live</span></div>
     <div class="cam-grid">
-      <div class="cam-feed"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".35"><rect x="2" y="7" width="15" height="10" rx="2"/><polygon points="17 9 22 7 22 17 17 15"/></svg><span class="cam-label">Framsida</span></div>
-      <div class="cam-feed"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".35"><rect x="2" y="7" width="15" height="10" rx="2"/><polygon points="17 9 22 7 22 17 17 15"/></svg><span class="cam-label">Baksida</span></div>
-      <div class="cam-feed"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".35"><rect x="2" y="7" width="15" height="10" rx="2"/><polygon points="17 9 22 7 22 17 17 15"/></svg><span class="cam-label">Garage</span></div>
-      <div class="cam-feed"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".35"><rect x="2" y="7" width="15" height="10" rx="2"/><polygon points="17 9 22 7 22 17 17 15"/></svg><span class="cam-label">Trädgård</span></div>
+      <div class="cam-feed"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.2"><rect x="2" y="7" width="15" height="10" rx="2"/><polygon points="17 9 22 7 22 17 17 15"/></svg><span class="cam-label">Vardagsrum</span></div>
+      <div class="cam-feed"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" stroke-width="1.2"><rect x="2" y="7" width="15" height="10" rx="2"/><polygon points="17 9 22 7 22 17 17 15"/></svg><span class="cam-label">Kamera 2</span></div>
     </div>
   </div>
 
@@ -114,9 +169,9 @@
       <div><div class="weather-desc" id="w-desc">Hämtar...</div><div class="weather-sub" id="w-feels">Känns som —°</div></div>
     </div>
     <div class="weather-row">
-      <div class="weather-chip"><span>Vind</span><span id="w-wind">—</span></div>
-      <div class="weather-chip"><span>Fukt</span><span id="w-hum">—</span></div>
-      <div class="weather-chip"><span>Regn</span><span id="w-rain">—</span></div>
+      <div class="weather-chip"><span>Vind</span><b id="w-wind">—</b></div>
+      <div class="weather-chip"><span>Fukt</span><b id="w-hum">—</b></div>
+      <div class="weather-chip"><span>Regn</span><b id="w-rain">—</b></div>
     </div>
   </div>
 
@@ -128,18 +183,20 @@
   </div>
 
   <div class="card card-sensors">
-    <div class="card-header"><span class="card-title">Sensorer — Homey</span><span class="badge badge-off" id="sensor-badge">Ej ansluten</span></div>
+    <div class="card-header"><span class="card-title">Sensorer</span><span class="badge badge-off" id="sensor-badge">Ej ansluten</span></div>
     <div class="sensor-grid">
-      <div class="sensor"><div style="font-size:14px;margin-bottom:2px">🌡</div><div class="sensor-label">Inomhus</div><div class="sensor-value" id="s-temp">—<span class="sensor-unit">°C</span></div></div>
-      <div class="sensor"><div style="font-size:14px;margin-bottom:2px">💧</div><div class="sensor-label">Fukt</div><div class="sensor-value" id="s-hum">—<span class="sensor-unit">%</span></div></div>
-      <div class="sensor"><div style="font-size:14px;margin-bottom:2px">🔌</div><div class="sensor-label">Effekt</div><div class="sensor-value" id="s-power">—<span class="sensor-unit">W</span></div></div>
-      <div class="sensor"><div style="font-size:14px;margin-bottom:2px">🚪</div><div class="sensor-label">Dörr</div><div class="sensor-value" id="s-door" style="font-size:14px;margin-top:6px">—</div></div>
+      <div class="sensor"><div class="sensor-icon">🌡️</div><div class="sensor-label">Inomhus</div><div class="sensor-value" id="s-temp">—<span class="sensor-unit">°C</span></div></div>
+      <div class="sensor"><div class="sensor-icon">💧</div><div class="sensor-label">Fukt</div><div class="sensor-value" id="s-hum">—<span class="sensor-unit">%</span></div></div>
+      <div class="sensor"><div class="sensor-icon">⚡</div><div class="sensor-label">Effekt</div><div class="sensor-value" id="s-power">—<span class="sensor-unit">W</span></div></div>
+      <div class="sensor"><div class="sensor-icon">🚪</div><div class="sensor-label">Dörr</div><div class="sensor-value" id="s-door" style="font-size:15px;margin-top:8px">—</div></div>
     </div>
   </div>
 
   <div class="card card-calendar">
-    <div class="card-header"><span class="card-title">Kalender</span><span class="badge badge-off">Google — kommer</span></div>
-    <div class="event-list"><div style="color:var(--muted);font-size:13px">Google Kalender-integration kommer i nästa steg</div></div>
+    <div class="card-header"><span class="card-title">Kalender</span><span class="badge badge-off" id="cal-badge">Hämtar...</span></div>
+    <div class="event-list" id="cal-list">
+      <div style="color:var(--muted);font-size:13px">Hämtar kalender...</div>
+    </div>
   </div>
 
   <div class="card card-devices">
@@ -157,139 +214,127 @@
 </div>
 
 <script>
-const CLIENT_ID = '69e112dec21a9fb1a2f64aa5';
-const HOMEY_ID = '5d93218fa2d1260c4cbd184d';
-const WORKER = 'https://spring-bird-4ad8.thomas-bodegrim.workers.dev';
-const REDIRECT_URI = 'https://thomasb-collab.github.io/smarthomedashboard/callback.html';
-const AUTH_URL = `https://api.athom.com/oauth2/authorise?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=homey.device.readonly+homey.device.control+homey.presence.readonly+homey.zone.readonly`;
-
-const weatherCodes = {0:'Klart',1:'Mestadels klart',2:'Delvis molnigt',3:'Mulet',45:'Dimma',51:'Lätt duggregn',53:'Måttligt duggregn',61:'Lätt regn',63:'Måttligt regn',65:'Kraftigt regn',71:'Lätt snö',73:'Måttlig snö',75:'Kraftig snö',80:'Skurar',95:'Åska'};
+const CLIENT_ID='69e112dec21a9fb1a2f64aa5';
+const HOMEY_ID='5d93218fa2d1260c4cbd184d';
+const WORKER='https://spring-bird-4ad8.thomas-bodegrim.workers.dev';
+const REDIRECT_URI='https://thomasb-collab.github.io/smarthomedashboard/callback.html';
+const AUTH_URL=`https://api.athom.com/oauth2/authorise?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=homey.device.readonly+homey.device.control+homey.presence.readonly+homey.zone.readonly`;
+const weatherCodes={0:'Klart',1:'Mestadels klart',2:'Delvis molnigt',3:'Mulet',45:'Dimma',51:'Lätt duggregn',61:'Lätt regn',63:'Måttligt regn',65:'Kraftigt regn',71:'Lätt snö',73:'Måttlig snö',75:'Kraftig snö',80:'Skurar',95:'Åska'};
 
 function updateClock(){
-  const n = new Date();
-  document.getElementById('clock').textContent = n.toLocaleTimeString('sv-SE');
-  document.getElementById('date').textContent = n.toLocaleDateString('sv-SE',{weekday:'long',day:'numeric',month:'long'});
+  const n=new Date();
+  document.getElementById('clock').textContent=n.toLocaleTimeString('sv-SE');
+  document.getElementById('date').textContent=n.toLocaleDateString('sv-SE',{weekday:'long',day:'numeric',month:'long'});
 }
-updateClock(); setInterval(updateClock,1000);
+updateClock();setInterval(updateClock,1000);
 
 async function fetchWeather(){
   try{
-    const r = await fetch('https://api.open-meteo.com/v1/forecast?latitude=60.35&longitude=15.75&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,precipitation,weather_code&wind_speed_unit=ms');
-    const d = await r.json(); const c = d.current;
-    document.getElementById('w-temp').textContent = Math.round(c.temperature_2m)+'°';
-    document.getElementById('w-desc').textContent = weatherCodes[c.weather_code]||'—';
-    document.getElementById('w-feels').textContent = 'Känns som '+Math.round(c.apparent_temperature)+'°';
-    document.getElementById('w-wind').textContent = Math.round(c.wind_speed_10m)+' m/s';
-    document.getElementById('w-hum').textContent = c.relative_humidity_2m+' %';
-    document.getElementById('w-rain').textContent = c.precipitation+' mm';
-    document.getElementById('status-weather').textContent = 'Live';
-    document.getElementById('status-weather').style.color = 'var(--accent2)';
+    const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude=60.35&longitude=15.75&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,precipitation,weather_code&wind_speed_unit=ms');
+    const d=await r.json();const c=d.current;
+    document.getElementById('w-temp').textContent=Math.round(c.temperature_2m)+'°';
+    document.getElementById('w-desc').textContent=weatherCodes[c.weather_code]||'—';
+    document.getElementById('w-feels').textContent='Känns som '+Math.round(c.apparent_temperature)+'°';
+    document.getElementById('w-wind').textContent=Math.round(c.wind_speed_10m)+' m/s';
+    document.getElementById('w-hum').textContent=c.relative_humidity_2m+' %';
+    document.getElementById('w-rain').textContent=c.precipitation+' mm';
+    document.getElementById('status-weather').textContent='Live';
+    document.getElementById('status-weather').style.color='var(--accent2)';
   }catch(e){console.warn('Weather',e)}
 }
-fetchWeather(); setInterval(fetchWeather,600000);
+fetchWeather();setInterval(fetchWeather,600000);
+
+async function fetchCalendar(){
+  try{
+    const r=await fetch(`${WORKER}/calendar`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+    const d=await r.json();
+    const list=document.getElementById('cal-list');
+    if(!d.events?.length){list.innerHTML='<div style="color:var(--muted);font-size:13px">Inga kommande händelser</div>';return;}
+    list.innerHTML='';
+    d.events.forEach(e=>{
+      const dt=new Date(e.start);
+      const today=new Date();
+      const tomorrow=new Date(today);tomorrow.setDate(today.getDate()+1);
+      const isToday=dt.toDateString()===today.toDateString();
+      const isTomorrow=dt.toDateString()===tomorrow.toDateString();
+      const dateLabel=isToday?'Idag':isTomorrow?'Imorgon':dt.toLocaleDateString('sv-SE',{weekday:'short',day:'numeric',month:'short'});
+      const timeLabel=dt.toLocaleTimeString('sv-SE',{hour:'2-digit',minute:'2-digit'});
+      list.innerHTML+=`<div class="event"><div class="event-time-col"><div class="event-time">${timeLabel}</div><div class="event-date">${dateLabel}</div></div><div class="event-bar"></div><div><div class="event-title">${e.summary}</div>${e.location?`<div class="event-sub">${e.location}</div>`:''}</div></div>`;
+    });
+    document.getElementById('cal-badge').textContent='Live';
+    document.getElementById('cal-badge').className='badge badge-ok';
+  }catch(err){console.warn('Calendar',err)}
+}
+fetchCalendar();setInterval(fetchCalendar,300000);
 
 function connectHomey(){
-  const session = localStorage.getItem('homey_session_token');
+  const session=localStorage.getItem('homey_session_token');
   if(session){
-    localStorage.removeItem('homey_session_token');
-    localStorage.removeItem('homey_access_token');
-    localStorage.removeItem('homey_refresh_token');
-    localStorage.removeItem('homey_remote_url');
-    location.reload();
-    return;
+    ['homey_session_token','homey_access_token','homey_refresh_token','homey_remote_url'].forEach(k=>localStorage.removeItem(k));
+    location.reload();return;
   }
-  window.location.href = AUTH_URL;
-}
-
-async function workerPost(path, body){
-  const r = await fetch(`${WORKER}${path}`,{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify(body)
-  });
-  return r.json();
+  window.location.href=AUTH_URL;
 }
 
 async function homeyGet(path){
-  const session = localStorage.getItem('homey_session_token');
-  const remoteUrl = localStorage.getItem('homey_remote_url');
-  const r = await fetch(`${remoteUrl}/api/manager${path}`,{
-    headers:{Authorization:`Bearer ${session}`}
-  });
+  const session=localStorage.getItem('homey_session_token');
+  const remoteUrl=localStorage.getItem('homey_remote_url');
+  const r=await fetch(`${remoteUrl}/api/manager${path}`,{headers:{Authorization:`Bearer ${session}`}});
   return r.json();
 }
 
 async function loadHomey(){
-  const session = localStorage.getItem('homey_session_token');
-  if(!session) return;
+  const session=localStorage.getItem('homey_session_token');
+  if(!session)return;
+  document.getElementById('homey-btn').textContent='Koppla från';
+  document.getElementById('homey-btn').classList.add('connected');
+  document.getElementById('status-homey').textContent='Ansluten';
+  document.getElementById('status-homey').style.color='var(--accent2)';
+  document.getElementById('sensor-badge').textContent='Live';
+  document.getElementById('sensor-badge').className='badge badge-ok';
+  document.getElementById('device-badge').textContent='Live';
+  document.getElementById('device-badge').className='badge badge-ok';
 
-  const btn = document.getElementById('homey-btn');
-  btn.textContent = 'Koppla från Homey';
-  btn.classList.add('connected');
-  document.getElementById('status-homey').textContent = 'Ansluten';
-  document.getElementById('status-homey').style.color = 'var(--accent2)';
-  document.getElementById('sensor-badge').textContent = 'Live';
-  document.getElementById('sensor-badge').className = 'badge badge-ok';
-  document.getElementById('device-badge').textContent = 'Live';
-  document.getElementById('device-badge').className = 'badge badge-ok';
-
-  // Närvaro via Worker proxy med access_token
   try{
-    const presenceData = await homeyGet('/users/user');
-    const list = document.getElementById('presence-list');
-    if(presenceData && !presenceData.error){
-      list.innerHTML = '';
-      Object.values(presenceData).forEach(u => {
-        const initials = (u.name||u.firstname||'?').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
-        const home = u.present === true;
-        list.innerHTML += `
-          <div class="person">
-            <div class="avatar ${home?'home':'away'}">${initials}</div>
-            <div class="person-info">
-              <div class="person-name">${u.name||u.firstname||'Okänd'}</div>
-              <div class="person-status">${home?'Hemma':'Borta'}</div>
-            </div>
-            <div class="presence-dot ${home?'dot-home':'dot-away'}"></div>
-          </div>`;
+    const presenceData=await homeyGet('/users/user');
+    const list=document.getElementById('presence-list');
+    if(presenceData&&!presenceData.error){
+      list.innerHTML='';
+      Object.values(presenceData).forEach(u=>{
+        const initials=(u.name||u.firstname||'?').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+        const home=u.present===true;
+        list.innerHTML+=`<div class="person"><div class="avatar ${home?'home':'away'}">${initials}</div><div class="person-info"><div class="person-name">${u.name||u.firstname||'Okänd'}</div><div class="person-status">${home?'Hemma':'Borta'}</div></div><div class="presence-dot ${home?'dot-home':'dot-away'}"></div></div>`;
       });
-    } else {
-      list.innerHTML = `<div style="color:var(--muted);font-size:11px;word-break:break-all">${JSON.stringify(presenceData)}</div>`;
+    }else{
+      list.innerHTML=`<div style="color:var(--muted);font-size:11px">${JSON.stringify(presenceData)}</div>`;
     }
-    document.getElementById('presence-badge').textContent = 'Live';
-    document.getElementById('presence-badge').className = 'badge badge-ok';
+    document.getElementById('presence-badge').textContent='Live';
+    document.getElementById('presence-badge').className='badge badge-ok';
   }catch(e){console.warn('Presence',e)}
 
-  // Enheter och sensorer
   try{
-    const devices = await homeyGet('/devices/device');
-    const devArr = Object.values(devices);
-
-    devArr.forEach(d => {
-      const caps = d.capabilitiesObj||{};
-      if(caps.measure_temperature) document.getElementById('s-temp').innerHTML = Math.round(caps.measure_temperature.value)+'<span class="sensor-unit">°C</span>';
-      if(caps.measure_humidity) document.getElementById('s-hum').innerHTML = Math.round(caps.measure_humidity.value)+'<span class="sensor-unit">%</span>';
-      if(caps.measure_power) document.getElementById('s-power').innerHTML = Math.round(caps.measure_power.value)+'<span class="sensor-unit">W</span>';
-      if(caps.alarm_contact) document.getElementById('s-door').textContent = caps.alarm_contact.value?'Öppen':'Stängd';
+    const devices=await homeyGet('/devices/device');
+    const devArr=Object.values(devices);
+    devArr.forEach(d=>{
+      const caps=d.capabilitiesObj||{};
+      if(caps.measure_temperature)document.getElementById('s-temp').innerHTML=Math.round(caps.measure_temperature.value)+'<span class="sensor-unit">°C</span>';
+      if(caps.measure_humidity)document.getElementById('s-hum').innerHTML=Math.round(caps.measure_humidity.value)+'<span class="sensor-unit">%</span>';
+      if(caps.measure_power)document.getElementById('s-power').innerHTML=Math.round(caps.measure_power.value)+'<span class="sensor-unit">W</span>';
+      if(caps.alarm_contact)document.getElementById('s-door').textContent=caps.alarm_contact.value?'Öppen':'Stängd';
     });
-
-    const list = document.getElementById('device-list');
-    list.innerHTML = '';
+    const list=document.getElementById('device-list');
+    list.innerHTML='';
     devArr.filter(d=>d.capabilitiesObj?.onoff!==undefined).slice(0,6).forEach(d=>{
-      const isOn = d.capabilitiesObj.onoff.value;
-      const icon = d.class==='light'?'💡':d.class==='lock'?'🔒':d.class==='thermostat'?'🌡':'🔌';
-      list.innerHTML += `
-        <div class="device">
-          <div class="device-icon">${icon}</div>
-          <div class="device-info"><div class="device-name">${d.name}</div><div class="device-state">${isOn?'På':'Av'}</div></div>
-          <div class="toggle ${isOn?'on':''}" onclick="toggleDevice('${d.id}',${!isOn},this)"></div>
-        </div>`;
+      const isOn=d.capabilitiesObj.onoff.value;
+      const icon=d.class==='light'?'💡':d.class==='lock'?'🔒':d.class==='thermostat'?'🌡️':'🔌';
+      list.innerHTML+=`<div class="device"><div class="device-icon">${icon}</div><div class="device-info"><div class="device-name">${d.name}</div><div class="device-state">${isOn?'På':'Av'}</div></div><div class="toggle ${isOn?'on':''}" onclick="toggleDevice('${d.id}',${!isOn},this)"></div></div>`;
     });
   }catch(e){console.warn('Devices',e)}
 }
 
-async function toggleDevice(id, newState, el){
-  const session = localStorage.getItem('homey_session_token');
-  const remoteUrl = localStorage.getItem('homey_remote_url');
+async function toggleDevice(id,newState,el){
+  const session=localStorage.getItem('homey_session_token');
+  const remoteUrl=localStorage.getItem('homey_remote_url');
   el.classList.toggle('on');
   try{
     await fetch(`${remoteUrl}/api/manager/devices/device/${id}/capability`,{
@@ -300,33 +345,7 @@ async function toggleDevice(id, newState, el){
   }catch(e){el.classList.toggle('on')}
 }
 
-async function fetchCalendar(){
-  try{
-    const r = await fetch(`${WORKER}/calendar`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}' });
-    const d = await r.json();
-    const list = document.getElementById('cal-list');
-    if(!d.events?.length){ list.innerHTML='<div style="color:var(--muted);font-size:13px">Inga kommande händelser</div>'; return; }
-    list.innerHTML = '';
-    d.events.forEach(e => {
-      const dt = new Date(e.start);
-      const today = new Date();
-      const tomorrow = new Date(today); tomorrow.setDate(today.getDate()+1);
-      const isToday = dt.toDateString() === today.toDateString();
-      const isTomorrow = dt.toDateString() === tomorrow.toDateString();
-      const dateLabel = isToday ? 'Idag' : isTomorrow ? 'Imorgon' : dt.toLocaleDateString('sv-SE',{weekday:'short',day:'numeric',month:'short'});
-      const timeLabel = dt.toLocaleTimeString('sv-SE',{hour:'2-digit',minute:'2-digit'});
-      list.innerHTML += `
-        <div class="event">
-          <div class="event-time-col"><div class="event-time">${timeLabel}</div><div class="event-date">${dateLabel}</div></div>
-          <div class="event-bar"></div>
-          <div><div class="event-title">${e.summary}</div>${e.location?`<div class="event-sub">${e.location}</div>`:''}</div>
-        </div>`;
-    });
-    document.getElementById('cal-badge').textContent = 'Live';
-    document.getElementById('cal-badge').className = 'badge badge-ok';
-  }catch(err){ console.warn('Calendar',err); }
-}
-fetchCalendar(); setInterval(fetchCalendar, 300000);
+loadHomey();
 </script>
 </body>
 </html>
