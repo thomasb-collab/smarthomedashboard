@@ -59,8 +59,26 @@ async function connect() {
 
   // Steg 4: Skapa Homey-session
   setStatus('Ansluter...', 'Steg 4 av 4 — Skapar Homey-session');
-  const sessionData = await post('/session', { delegation_token, remote_url });
-  if (!sessionData.session_token) { setStatus('Fel', JSON.stringify(sessionData)); return; }
+  let sessionData;
+  try {
+    const ctrl = new AbortController();
+    setTimeout(() => ctrl.abort(), 8000);
+    const r = await fetch(`${WORKER}/session`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ delegation_token, remote_url }),
+      signal: ctrl.signal
+    });
+    sessionData = await r.json();
+  } catch(e) {
+    setStatus('Session timeout', 'Homey svarade inte — sparar tokens ändå');
+    localStorage.setItem('homey_access_token', access_token);
+    localStorage.setItem('homey_refresh_token', refresh_token);
+    localStorage.setItem('homey_remote_url', remote_url);
+    setTimeout(() => { window.location.href = './'; }, 2000);
+    return;
+  }
+  if (!sessionData.session_token) { setStatus('Session-fel', JSON.stringify(sessionData)); return; }
 
   // Spara allt i localStorage
   localStorage.setItem('homey_access_token', access_token);
