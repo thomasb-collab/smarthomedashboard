@@ -49,7 +49,9 @@ async function connect() {
   setStatus('Debug', `remoteUrl: ${remote_url} | keys: ${Object.keys(homey).join(', ')}`);
 
   // Steg 3: Hämta delegation token
+  await new Promise(r => setTimeout(r, 100));
   setStatus('Ansluter...', 'Steg 3 av 4 — Skapar delegation token');
+  await new Promise(r => setTimeout(r, 100));
   const delegData = await post('/delegation', { access_token });
   if (!delegData.delegation_token) { setStatus('Fel', JSON.stringify(delegData)); return; }
   const { delegation_token } = delegData;
