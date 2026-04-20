@@ -51,8 +51,25 @@ async function connect() {
   if (!delegData.delegation_token) { setStatus('Fel steg 3', JSON.stringify(delegData).substring(0,200)); return; }
   const delegation_token = delegData.delegation_token;
 
-  // Spara access_token som session_token och fortsätt
-  localStorage.setItem('homey_session_token', access_token);
+  setStatus('Ansluter...', 'Steg 4 — Skapar Homey-session');
+  try {
+    const ctrl = new AbortController();
+    setTimeout(() => ctrl.abort(), 8000);
+    const r = await fetch(`${WORKER}/session`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ delegation_token, remote_url }),
+      signal: ctrl.signal
+    });
+    const sessionData = await r.json();
+    if (sessionData.session_token) {
+      localStorage.setItem('homey_session_token', sessionData.session_token);
+    } else {
+      localStorage.setItem('homey_session_token', access_token);
+    }
+  } catch(e) {
+    localStorage.setItem('homey_session_token', access_token);
+  }
   localStorage.setItem('homey_delegation_token', delegation_token);
   localStorage.setItem('homey_remote_url', remote_url);
   localStorage.setItem('homey_access_token', access_token);
