@@ -42,12 +42,8 @@ async function connect() {
   if (!tokenData.access_token) { setStatus('Token-fel', JSON.stringify(tokenData)); return; }
   const { access_token, refresh_token } = tokenData;
 
-  setStatus('Ansluter...', 'Steg 2 — Hämtar Homey-info');
-  const userInfo = await post('/userinfo', { access_token });
-  const homeys = userInfo.homeys || [];
-  if (!homeys.length) { setStatus('Fel', 'Inga Homeys hittades'); return; }
-  const homey = homeys[0];
-  const remote_url = homey.remoteUrl || `https://${homey._id}.homey.eu-west-1.homeypro.net`;
+  setStatus('Ansluter...', 'Steg 2 — Förbereder Homey-anslutning');
+  const remote_url = 'https://5d93218fa2d1260c4cbd184d.homey.eu-west-1.homeypro.net';
 
   setStatus('Ansluter...', 'Steg 3 — Skapar delegation token');
   const delegData = await post('/delegation', { access_token });
