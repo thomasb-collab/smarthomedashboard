@@ -5,25 +5,38 @@
 <title>Homey — Ansluter...</title>
 <style>
   body{background:#0f1117;color:#e8eaf0;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
-  .box{text-align:center;max-width:400px;padding:2rem}
-  h2{font-weight:500;margin-bottom:.5rem}
-  p{color:#8b90a7;font-size:14px;word-break:break-all}
+  .box{text-align:center;max-width:420px;padding:2rem}
+  h2{font-weight:500;margin-bottom:.5rem;font-size:20px}
+  p{color:#8b90a7;font-size:13px;word-break:break-all;margin-top:.5rem}
+  .step{display:flex;align-items:center;gap:10px;margin:.5rem 0;font-size:13px;color:#8b90a7}
+  .step.done{color:#10b981}
+  .step.active{color:#e8eaf0}
+  .step.error{color:#ef4444}
+  .dot{width:8px;height:8px;border-radius:50%;background:currentColor;flex-shrink:0}
 </style>
 </head>
 <body>
 <div class="box">
   <h2 id="msg">Ansluter till Homey...</h2>
-  <p id="sub">Startar...</p>
+  <div id="steps"></div>
+  <p id="err"></p>
 </div>
 <script>
 const WORKER = 'https://spring-bird-4ad8.thomas-bodegrim.workers.dev';
-const HOMEY_ID = '5d93218fa2d1260c4cbd184d';
 const params = new URLSearchParams(window.location.search);
-const code = params.get('code');
+const code   = params.get('code');
 
-function setStatus(msg, sub) {
-  document.getElementById('msg').textContent = msg;
-  document.getElementById('sub').textContent = sub;
+function addStep(text, state = 'active') {
+  const div = document.createElement('div');
+  div.className = `step ${state}`;
+  div.innerHTML = `<div class="dot"></div><span>${text}</span>`;
+  div.id = `step-${document.querySelectorAll('.step').length}`;
+  document.getElementById('steps').appendChild(div);
+  return div;
+}
+
+function setStep(el, state) {
+  el.className = `step ${state}`;
 }
 
 async function post(path, body) {
@@ -36,45 +49,82 @@ async function post(path, body) {
 }
 
 async function connect() {
-  if (!code) { setStatus('Fel', 'Ingen code i URL:en'); return; }
+  if (!code) {
+    document.getElementById('msg').textContent = 'Fel';
+    document.getElementById('err').textContent = 'Ingen code i URL:en';
+    return;
+  }
 
-  setStatus('Ansluter...', 'Steg 1 — Hämtar access token');
+  // Steg 1: Token exchange
+  const s1 = addStep('Hämtar access token...');
   const tokenData = await post('/token', { code });
   if (!tokenData.access_token) {
-    setStatus('Token-fel', JSON.stringify(tokenData));
+    setStep(s1, 'error');
+    document.getElementById('msg').textContent = 'Token-fel';
+    document.getElementById('err').textContent = JSON.stringify(tokenData);
     return;
   }
+  setStep(s1, 'done');
   const { access_token, refresh_token } = tokenData;
 
-  setStatus('Ansluter...', 'Steg 2 — Skapar delegation token');
-  const delegData = await post('/delegation', { access_token });
-  if (!delegData.delegation_token) {
-    setStatus('Fel steg 2', JSON.stringify(delegData).substring(0, 200));
+  // Steg 2: Hämta user info + remoteUrl
+  const s2 = addStep('Hämtar Homey-info...');
+  const userInfo = await post('/userinfo', { access_token });
+  if (!userInfo.homeys?.length) {
+    setStep(s2, 'error');
+    document.getElementById('msg').textContent = 'Ingen Homey hittad';
+    document.getElementById('err').textContent = JSON.stringify(userInfo).substring(0, 200);
     return;
   }
+  setStep(s2, 'done');
+
+  // Välj rätt Homey via HOMEY_ID eller första
+  const HOMEY_ID = '5d93218fa2d1260c4cbd184d';
+  const homey = userInfo.homeys.find(h => h._id === HOMEY_ID) || userInfo.homeys[0];
+  const remote_url = homey.remoteUrl;
+
+  if (!remote_url) {
+    document.getElementById('msg').textContent = 'Ingen remoteUrl';
+    document.getElementById('err').textContent = JSON.stringify(homey).substring(0, 200);
+    return;
+  }
+
+  // Steg 3: Delegation token
+  const s3 = addStep('Skapar delegation token...');
+  const delegData = await post('/delegation', { access_token });
+  if (!delegData.delegation_token) {
+    setStep(s3, 'error');
+    document.getElementById('msg').textContent = 'Delegation-fel';
+    document.getElementById('err').textContent = JSON.stringify(delegData).substring(0, 200);
+    return;
+  }
+  setStep(s3, 'done');
   const delegation_token = delegData.delegation_token;
 
-  setStatus('Ansluter...', 'Steg 3 — Skapar Homey-session');
-  const remote_url = `https://${HOMEY_ID}.connect.athom.com`;
+  // Steg 4: Skapa session på Homey
+  const s4 = addStep('Skapar Homey-session...');
   const sessionData = await post('/session', { delegation_token, remote_url });
-
-  // session_token kan vara sträng eller objekt { token: "..." }
-  let session_token = sessionData.session_token;
-  if (typeof session_token === 'object' && session_token?.token) {
-    session_token = session_token.token;
+  if (!sessionData.session_token) {
+    setStep(s4, 'error');
+    document.getElementById('msg').textContent = 'Session-fel';
+    document.getElementById('err').textContent = JSON.stringify(sessionData).substring(0, 200);
+    return;
   }
-  if (!session_token) {
-    // Fallback: använd access_token direkt
-    session_token = access_token;
-  }
+  setStep(s4, 'done');
 
-  localStorage.setItem('homey_session_token', session_token);
-  localStorage.setItem('homey_delegation_token', typeof delegation_token === 'object' ? delegation_token.token || JSON.stringify(delegation_token) : delegation_token);
-  localStorage.setItem('homey_remote_url', remote_url);
-  localStorage.setItem('homey_access_token', access_token);
-  localStorage.setItem('homey_refresh_token', refresh_token);
+  // session_token är en plain string från Homey
+  const session_token = typeof sessionData.session_token === 'string'
+    ? sessionData.session_token
+    : JSON.stringify(sessionData.session_token);
 
-  setStatus('Ansluten!', 'Återgår till dashboarden...');
+  // Spara allt i localStorage
+  localStorage.setItem('homey_session_token',    session_token);
+  localStorage.setItem('homey_remote_url',       remote_url);
+  localStorage.setItem('homey_access_token',     access_token);
+  localStorage.setItem('homey_refresh_token',    refresh_token);
+  localStorage.setItem('homey_token_expires',    String(Date.now() + 3600 * 1000));
+
+  document.getElementById('msg').textContent = 'Ansluten!';
   setTimeout(() => { window.location.href = './'; }, 1500);
 }
 
