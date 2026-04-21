@@ -214,11 +214,12 @@ main{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--gap);padding:var
 </div>
 
 <script>
-const CLIENT_ID = '69e68076c8958c3a09c6332a';
-const HOMEY_ID  = '5d93218fa2d1260c4cbd184d';
-const WORKER    = 'https://spring-bird-4ad8.thomas-bodegrim.workers.dev';
+const CLIENT_ID    = '69e68076c8958c3a09c6332a';
+const HOMEY_ID     = '5d93218fa2d1260c4cbd184d';
+const WORKER       = 'https://spring-bird-4ad8.thomas-bodegrim.workers.dev';
 const REDIRECT_URI = 'https://thomasb-collab.github.io/smarthomedashboard/callback.html';
-const AUTH_URL = `https://api.athom.com/oauth2/authorise?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=homey.device.readonly+homey.device.control+homey.presence.readonly+homey.zone.readonly`;
+const SCOPES       = 'homey.zone.readonly homey.device.readonly homey.device.control homey.presence.readonly homey.presence.self homey.user.readonly homey.app.readonly homey.notifications.readonly';
+const AUTH_URL     = `https://api.athom.com/oauth2/authorise?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=${encodeURIComponent(SCOPES)}`;
 
 const weatherCodes = {0:'Klart',1:'Mestadels klart',2:'Delvis molnigt',3:'Mulet',45:'Dimma',51:'Lätt duggregn',61:'Lätt regn',63:'Måttligt regn',65:'Kraftigt regn',71:'Lätt snö',73:'Måttlig snö',75:'Kraftig snö',80:'Skurar',95:'Åska'};
 
@@ -296,7 +297,6 @@ async function loadHomey() {
     const devices = await r.json();
     const devArr  = Object.values(devices);
 
-    // Sensorer — plocka första matchande värde
     devArr.forEach(d => {
       const caps = d.capabilitiesObj || {};
       if (caps.measure_temperature) document.getElementById('s-temp').innerHTML  = Math.round(caps.measure_temperature.value) + '<span class="sensor-unit">°C</span>';
@@ -305,7 +305,6 @@ async function loadHomey() {
       if (caps.alarm_contact !== undefined) document.getElementById('s-door').textContent = caps.alarm_contact.value ? 'Öppen' : 'Stängd';
     });
 
-    // Enheter med on/off
     const list = document.getElementById('device-list');
     list.innerHTML = '';
     devArr.filter(d => d.capabilitiesObj?.onoff !== undefined).slice(0, 6).forEach(d => {
@@ -320,12 +319,12 @@ async function loadHomey() {
     const r = await fetch(`${WORKER}/homey/users`, { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' });
     if (r.ok) {
       const users = await r.json();
-      const list  = document.getElementById('presence-list');
       const arr   = Array.isArray(users) ? users : Object.values(users);
+      const list  = document.getElementById('presence-list');
       if (arr.length) {
         list.innerHTML = '';
         arr.forEach(u => {
-          const isHome = u.present === true;
+          const isHome   = u.present === true;
           const initials = (u.name||'?').split(' ').map(p=>p[0]).join('').substring(0,2).toUpperCase();
           list.innerHTML += `<div class="person"><div class="avatar ${isHome?'home':'away'}">${initials}</div><div class="person-info"><div class="person-name">${u.name||u.id}</div><div class="person-status">${isHome?'Hemma':'Borta'}</div></div><div class="presence-dot ${isHome?'dot-home':'dot-away'}"></div></div>`;
         });
