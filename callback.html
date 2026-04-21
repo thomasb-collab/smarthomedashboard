@@ -40,40 +40,40 @@ async function connect() {
 
   setStatus('Ansluter...', 'Steg 1 — Hämtar access token');
   const tokenData = await post('/token', { code });
-  if (!tokenData.access_token) { setStatus('Token-fel', JSON.stringify(tokenData)); return; }
+  if (!tokenData.access_token) {
+    setStatus('Token-fel', JSON.stringify(tokenData));
+    return;
+  }
   const { access_token, refresh_token } = tokenData;
 
-  setStatus('Ansluter...', 'Steg 2 — Förbereder Homey-anslutning');
-  const remote_url = `https://${HOMEY_ID}.connect.athom.com`;
-
-  setStatus('Ansluter...', 'Steg 3 — Skapar delegation token');
+  setStatus('Ansluter...', 'Steg 2 — Skapar delegation token');
   const delegData = await post('/delegation', { access_token });
-  if (!delegData.delegation_token) { setStatus('Fel steg 3', JSON.stringify(delegData).substring(0,200)); return; }
+  if (!delegData.delegation_token) {
+    setStatus('Fel steg 2', JSON.stringify(delegData).substring(0, 200));
+    return;
+  }
   const delegation_token = delegData.delegation_token;
 
-  setStatus('Ansluter...', 'Steg 4 — Skapar Homey-session');
-  try {
-    const ctrl = new AbortController();
-    setTimeout(() => ctrl.abort(), 8000);
-    const r = await fetch(`${WORKER}/session`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ delegation_token, remote_url }),
-      signal: ctrl.signal
-    });
-    const sessionData = await r.json();
-    if (sessionData.session_token) {
-      localStorage.setItem('homey_session_token', sessionData.session_token);
-    } else {
-      localStorage.setItem('homey_session_token', access_token);
-    }
-  } catch(e) {
-    localStorage.setItem('homey_session_token', access_token);
+  setStatus('Ansluter...', 'Steg 3 — Skapar Homey-session');
+  const remote_url = `https://${HOMEY_ID}.connect.athom.com`;
+  const sessionData = await post('/session', { delegation_token, remote_url });
+
+  // session_token kan vara sträng eller objekt { token: "..." }
+  let session_token = sessionData.session_token;
+  if (typeof session_token === 'object' && session_token?.token) {
+    session_token = session_token.token;
   }
-  localStorage.setItem('homey_delegation_token', delegation_token);
+  if (!session_token) {
+    // Fallback: använd access_token direkt
+    session_token = access_token;
+  }
+
+  localStorage.setItem('homey_session_token', session_token);
+  localStorage.setItem('homey_delegation_token', typeof delegation_token === 'object' ? delegation_token.token || JSON.stringify(delegation_token) : delegation_token);
   localStorage.setItem('homey_remote_url', remote_url);
   localStorage.setItem('homey_access_token', access_token);
   localStorage.setItem('homey_refresh_token', refresh_token);
+
   setStatus('Ansluten!', 'Återgår till dashboarden...');
   setTimeout(() => { window.location.href = './'; }, 1500);
 }
