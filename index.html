@@ -214,117 +214,148 @@ main{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--gap);padding:var
 </div>
 
 <script>
-const CLIENT_ID='69e112dec21a9fb1a2f64aa5';
-const HOMEY_ID='5d93218fa2d1260c4cbd184d';
-const WORKER='https://spring-bird-4ad8.thomas-bodegrim.workers.dev';
-const REDIRECT_URI='https://thomasb-collab.github.io/smarthomedashboard/callback.html';
-const AUTH_URL=`https://api.athom.com/oauth2/authorise?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=homey.device.readonly+homey.device.control+homey.presence.readonly+homey.zone.readonly`;
-const weatherCodes={0:'Klart',1:'Mestadels klart',2:'Delvis molnigt',3:'Mulet',45:'Dimma',51:'Lätt duggregn',61:'Lätt regn',63:'Måttligt regn',65:'Kraftigt regn',71:'Lätt snö',73:'Måttlig snö',75:'Kraftig snö',80:'Skurar',95:'Åska'};
+const CLIENT_ID = '69e68076c8958c3a09c6332a';
+const HOMEY_ID  = '5d93218fa2d1260c4cbd184d';
+const WORKER    = 'https://spring-bird-4ad8.thomas-bodegrim.workers.dev';
+const REDIRECT_URI = 'https://thomasb-collab.github.io/smarthomedashboard/callback.html';
+const AUTH_URL = `https://api.athom.com/oauth2/authorise?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&scope=homey.device.readonly+homey.device.control+homey.presence.readonly+homey.zone.readonly`;
 
-function updateClock(){
-  const n=new Date();
-  document.getElementById('clock').textContent=n.toLocaleTimeString('sv-SE');
-  document.getElementById('date').textContent=n.toLocaleDateString('sv-SE',{weekday:'long',day:'numeric',month:'long'});
+const weatherCodes = {0:'Klart',1:'Mestadels klart',2:'Delvis molnigt',3:'Mulet',45:'Dimma',51:'Lätt duggregn',61:'Lätt regn',63:'Måttligt regn',65:'Kraftigt regn',71:'Lätt snö',73:'Måttlig snö',75:'Kraftig snö',80:'Skurar',95:'Åska'};
+
+// ── Klocka ────────────────────────────────────────────────────────────────
+function updateClock() {
+  const n = new Date();
+  document.getElementById('clock').textContent = n.toLocaleTimeString('sv-SE');
+  document.getElementById('date').textContent  = n.toLocaleDateString('sv-SE', {weekday:'long',day:'numeric',month:'long'});
 }
-updateClock();setInterval(updateClock,1000);
+updateClock(); setInterval(updateClock, 1000);
 
-async function fetchWeather(){
-  try{
-    const r=await fetch('https://api.open-meteo.com/v1/forecast?latitude=60.35&longitude=15.75&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,precipitation,weather_code&wind_speed_unit=ms');
-    const d=await r.json();const c=d.current;
-    document.getElementById('w-temp').textContent=Math.round(c.temperature_2m)+'°';
-    document.getElementById('w-desc').textContent=weatherCodes[c.weather_code]||'—';
-    document.getElementById('w-feels').textContent='Känns som '+Math.round(c.apparent_temperature)+'°';
-    document.getElementById('w-wind').textContent=Math.round(c.wind_speed_10m)+' m/s';
-    document.getElementById('w-hum').textContent=c.relative_humidity_2m+' %';
-    document.getElementById('w-rain').textContent=c.precipitation+' mm';
-    document.getElementById('status-weather').textContent='Live';
-    document.getElementById('status-weather').style.color='var(--accent2)';
-  }catch(e){console.warn('Weather',e)}
+// ── Väder ─────────────────────────────────────────────────────────────────
+async function fetchWeather() {
+  try {
+    const r = await fetch('https://api.open-meteo.com/v1/forecast?latitude=60.35&longitude=15.75&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,precipitation,weather_code&wind_speed_unit=ms');
+    const d = await r.json(); const c = d.current;
+    document.getElementById('w-temp').textContent  = Math.round(c.temperature_2m) + '°';
+    document.getElementById('w-desc').textContent  = weatherCodes[c.weather_code] || '—';
+    document.getElementById('w-feels').textContent = 'Känns som ' + Math.round(c.apparent_temperature) + '°';
+    document.getElementById('w-wind').textContent  = Math.round(c.wind_speed_10m) + ' m/s';
+    document.getElementById('w-hum').textContent   = c.relative_humidity_2m + ' %';
+    document.getElementById('w-rain').textContent  = c.precipitation + ' mm';
+    document.getElementById('status-weather').textContent = 'Live';
+    document.getElementById('status-weather').style.color = 'var(--accent2)';
+  } catch(e) { console.warn('Weather', e); }
 }
-fetchWeather();setInterval(fetchWeather,600000);
+fetchWeather(); setInterval(fetchWeather, 600000);
 
-async function fetchCalendar(){
-  try{
-    const r=await fetch(`${WORKER}/calendar`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
-    const d=await r.json();
-    const list=document.getElementById('cal-list');
-    if(!d.events?.length){list.innerHTML='<div style="color:var(--muted);font-size:13px">Inga kommande händelser</div>';return;}
-    list.innerHTML='';
-    d.events.forEach(e=>{
-      const dt=new Date(e.start);
-      const today=new Date();
-      const tomorrow=new Date(today);tomorrow.setDate(today.getDate()+1);
-      const isToday=dt.toDateString()===today.toDateString();
-      const isTomorrow=dt.toDateString()===tomorrow.toDateString();
-      const dateLabel=isToday?'Idag':isTomorrow?'Imorgon':dt.toLocaleDateString('sv-SE',{weekday:'short',day:'numeric',month:'short'});
-      const timeLabel=dt.toLocaleTimeString('sv-SE',{hour:'2-digit',minute:'2-digit'});
-      list.innerHTML+=`<div class="event"><div class="event-time-col"><div class="event-time">${timeLabel}</div><div class="event-date">${dateLabel}</div></div><div class="event-bar"></div><div><div class="event-title">${e.summary}</div>${e.location?`<div class="event-sub">${e.location}</div>`:''}</div></div>`;
+// ── Kalender ──────────────────────────────────────────────────────────────
+async function fetchCalendar() {
+  try {
+    const r = await fetch(`${WORKER}/calendar`, { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' });
+    const d = await r.json();
+    const list = document.getElementById('cal-list');
+    if (!d.events?.length) { list.innerHTML = '<div style="color:var(--muted);font-size:13px">Inga kommande händelser</div>'; return; }
+    list.innerHTML = '';
+    d.events.forEach(e => {
+      const dt = new Date(e.start);
+      const today = new Date(); const tomorrow = new Date(today); tomorrow.setDate(today.getDate()+1);
+      const isToday    = dt.toDateString() === today.toDateString();
+      const isTomorrow = dt.toDateString() === tomorrow.toDateString();
+      const dateLabel  = isToday ? 'Idag' : isTomorrow ? 'Imorgon' : dt.toLocaleDateString('sv-SE',{weekday:'short',day:'numeric',month:'short'});
+      const timeLabel  = dt.toLocaleTimeString('sv-SE',{hour:'2-digit',minute:'2-digit'});
+      list.innerHTML += `<div class="event"><div class="event-time-col"><div class="event-time">${timeLabel}</div><div class="event-date">${dateLabel}</div></div><div class="event-bar"></div><div><div class="event-title">${e.summary}</div>${e.location?`<div class="event-sub">${e.location}</div>`:''}</div></div>`;
     });
-    document.getElementById('cal-badge').textContent='Live';
-    document.getElementById('cal-badge').className='badge badge-ok';
-  }catch(err){console.warn('Calendar',err)}
+    document.getElementById('cal-badge').textContent = 'Live';
+    document.getElementById('cal-badge').className   = 'badge badge-ok';
+  } catch(err) { console.warn('Calendar', err); }
 }
-fetchCalendar();setInterval(fetchCalendar,300000);
+fetchCalendar(); setInterval(fetchCalendar, 300000);
 
-async function loadHomey(){
-  const session = localStorage.getItem('homey_session_token');
+// ── Homey — ladda enheter & sensorer ──────────────────────────────────────
+async function loadHomey() {
+  const session   = localStorage.getItem('homey_session_token');
   const remoteUrl = localStorage.getItem('homey_remote_url');
-  if(!session || !remoteUrl) return;
+  if (!session || !remoteUrl) return;
 
   document.getElementById('homey-btn').textContent = 'Koppla från';
   document.getElementById('homey-btn').classList.add('connected');
-  document.getElementById('status-homey').textContent = 'Ansluten';
-  document.getElementById('status-homey').style.color = 'var(--accent2)';
-  document.getElementById('sensor-badge').textContent = 'Live';
-  document.getElementById('sensor-badge').className = 'badge badge-ok';
-  document.getElementById('device-badge').textContent = 'Live';
-  document.getElementById('device-badge').className = 'badge badge-ok';
+  document.getElementById('status-homey').textContent   = 'Ansluten';
+  document.getElementById('status-homey').style.color   = 'var(--accent2)';
+  document.getElementById('sensor-badge').textContent   = 'Live';
+  document.getElementById('sensor-badge').className     = 'badge badge-ok';
+  document.getElementById('device-badge').textContent   = 'Live';
+  document.getElementById('device-badge').className     = 'badge badge-ok';
+  document.getElementById('presence-badge').textContent = 'Live';
+  document.getElementById('presence-badge').className   = 'badge badge-ok';
 
-  // Enheter och sensorer via session-token
-  try{
+  // Enheter & sensorer
+  try {
     const r = await fetch(`${remoteUrl}/api/manager/devices/device`, {
       headers: { Authorization: `Bearer ${session}` }
     });
+    if (!r.ok) { console.warn('Devices HTTP', r.status, await r.text()); return; }
     const devices = await r.json();
-    const devArr = Object.values(devices);
+    const devArr  = Object.values(devices);
 
+    // Sensorer — plocka första matchande värde
     devArr.forEach(d => {
       const caps = d.capabilitiesObj || {};
-      if(caps.measure_temperature) document.getElementById('s-temp').innerHTML = Math.round(caps.measure_temperature.value) + '<span class="sensor-unit">°C</span>';
-      if(caps.measure_humidity) document.getElementById('s-hum').innerHTML = Math.round(caps.measure_humidity.value) + '<span class="sensor-unit">%</span>';
-      if(caps.measure_power) document.getElementById('s-power').innerHTML = Math.round(caps.measure_power.value) + '<span class="sensor-unit">W</span>';
-      if(caps.alarm_contact) document.getElementById('s-door').textContent = caps.alarm_contact.value ? 'Öppen' : 'Stängd';
+      if (caps.measure_temperature) document.getElementById('s-temp').innerHTML  = Math.round(caps.measure_temperature.value) + '<span class="sensor-unit">°C</span>';
+      if (caps.measure_humidity)    document.getElementById('s-hum').innerHTML   = Math.round(caps.measure_humidity.value)    + '<span class="sensor-unit">%</span>';
+      if (caps.measure_power)       document.getElementById('s-power').innerHTML = Math.round(caps.measure_power.value)       + '<span class="sensor-unit">W</span>';
+      if (caps.alarm_contact !== undefined) document.getElementById('s-door').textContent = caps.alarm_contact.value ? 'Öppen' : 'Stängd';
     });
 
+    // Enheter med on/off
     const list = document.getElementById('device-list');
     list.innerHTML = '';
-    devArr.filter(d => d.capabilitiesObj?.onoff !== undefined).slice(0,6).forEach(d => {
+    devArr.filter(d => d.capabilitiesObj?.onoff !== undefined).slice(0, 6).forEach(d => {
       const isOn = d.capabilitiesObj.onoff.value;
       const icon = d.class==='light'?'💡':d.class==='lock'?'🔒':d.class==='thermostat'?'🌡️':'🔌';
       list.innerHTML += `<div class="device"><div class="device-icon">${icon}</div><div class="device-info"><div class="device-name">${d.name}</div><div class="device-state">${isOn?'På':'Av'}</div></div><div class="toggle ${isOn?'on':''}" onclick="toggleDevice('${d.id}',${!isOn},this)"></div></div>`;
     });
-  } catch(e){ console.warn('Devices', e) }
+  } catch(e) { console.warn('Devices error', e); }
+
+  // Närvaro via PAT (worker)
+  try {
+    const r = await fetch(`${WORKER}/homey/users`, { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' });
+    if (r.ok) {
+      const users = await r.json();
+      const list  = document.getElementById('presence-list');
+      const arr   = Array.isArray(users) ? users : Object.values(users);
+      if (arr.length) {
+        list.innerHTML = '';
+        arr.forEach(u => {
+          const isHome = u.present === true;
+          const initials = (u.name||'?').split(' ').map(p=>p[0]).join('').substring(0,2).toUpperCase();
+          list.innerHTML += `<div class="person"><div class="avatar ${isHome?'home':'away'}">${initials}</div><div class="person-info"><div class="person-name">${u.name||u.id}</div><div class="person-status">${isHome?'Hemma':'Borta'}</div></div><div class="presence-dot ${isHome?'dot-home':'dot-away'}"></div></div>`;
+        });
+      }
+    }
+  } catch(e) { console.warn('Presence error', e); }
 }
 
-async function toggleDevice(id, newState, el){
-  const session = localStorage.getItem('homey_session_token');
+// ── Toggla enhet ──────────────────────────────────────────────────────────
+async function toggleDevice(id, newState, el) {
+  const session   = localStorage.getItem('homey_session_token');
   const remoteUrl = localStorage.getItem('homey_remote_url');
   el.classList.toggle('on');
-  try{
+  try {
     await fetch(`${remoteUrl}/api/manager/devices/device/${id}/capability`, {
       method: 'PUT',
       headers: { Authorization: `Bearer ${session}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ capability: 'onoff', value: newState })
     });
-  } catch(e){ el.classList.toggle('on') }
+  } catch(e) { el.classList.toggle('on'); }
 }
 
-function connectHomey(){
+// ── Anslut / koppla från Homey ────────────────────────────────────────────
+function connectHomey() {
   const session = localStorage.getItem('homey_session_token');
-  if(session){
-    ['homey_session_token','homey_access_token','homey_refresh_token','homey_remote_url'].forEach(k => localStorage.removeItem(k));
-    location.reload(); return;
+  if (session) {
+    ['homey_session_token','homey_access_token','homey_refresh_token','homey_remote_url','homey_delegation_token']
+      .forEach(k => localStorage.removeItem(k));
+    location.reload();
+    return;
   }
   window.location.href = AUTH_URL;
 }
