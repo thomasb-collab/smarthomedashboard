@@ -21,30 +21,8 @@
   --gap:14px;
   --shadow:0 2px 8px rgba(0,0,0,.08), 0 8px 32px rgba(0,0,0,.08);
 }
-body{
-  background:var(--bg);
-  color:var(--text);
-  font-family:system-ui,sans-serif;
-  font-size:14px;
-  min-height:100vh;
-  display:flex;
-  flex-direction:column;
-  position:relative;
-}
-body::before{
-  content:'';
-  position:fixed;
-  inset:0;
-  z-index:0;
-  background:
-    radial-gradient(ellipse 80% 60% at 10% 20%, #c7d2fe 0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 85% 10%, #fbcfe8 0%, transparent 55%),
-    radial-gradient(ellipse 70% 60% at 50% 90%, #a5f3fc 0%, transparent 60%),
-    radial-gradient(ellipse 50% 40% at 90% 80%, #bbf7d0 0%, transparent 50%),
-    radial-gradient(ellipse 40% 30% at 20% 70%, #fde68a 0%, transparent 50%);
-  background-color:#f0f4ff;
-  filter:blur(40px) saturate(1.4);
-}
+body{background:var(--bg);color:var(--text);font-family:system-ui,sans-serif;font-size:14px;min-height:100vh;display:flex;flex-direction:column;position:relative}
+body::before{content:'';position:fixed;inset:0;z-index:0;background:radial-gradient(ellipse 80% 60% at 10% 20%,#c7d2fe 0%,transparent 60%),radial-gradient(ellipse 60% 50% at 85% 10%,#fbcfe8 0%,transparent 55%),radial-gradient(ellipse 70% 60% at 50% 90%,#a5f3fc 0%,transparent 60%),radial-gradient(ellipse 50% 40% at 90% 80%,#bbf7d0 0%,transparent 50%),radial-gradient(ellipse 40% 30% at 20% 70%,#fde68a 0%,transparent 50%);background-color:#f0f4ff;filter:blur(40px) saturate(1.4)}
 header,main,.status-bar{position:relative;z-index:1}
 header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:rgba(255,255,255,0.7);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.5);position:sticky;top:0;z-index:10}
 .logo{font-size:16px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--accent)}
@@ -123,17 +101,8 @@ main{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--gap);padding:var
 .card-sensors{grid-column:1/2}
 .card-calendar{grid-column:2/3}
 .card-devices{grid-column:3/4}
-@media(max-width:900px){
-  .card-cameras{grid-column:1/3}
-  .card-weather{grid-column:1/2}
-  .card-presence{grid-column:2/3}
-  .card-sensors{grid-column:1/2}
-  .card-calendar{grid-column:2/3}
-  .card-devices{grid-column:1/3}
-}
-@media(max-width:580px){
-  .card-cameras,.card-weather,.card-presence,.card-sensors,.card-calendar,.card-devices{grid-column:1}
-}
+@media(max-width:900px){.card-cameras{grid-column:1/3}.card-weather{grid-column:1/2}.card-presence{grid-column:2/3}.card-sensors{grid-column:1/2}.card-calendar{grid-column:2/3}.card-devices{grid-column:1/3}}
+@media(max-width:580px){.card-cameras,.card-weather,.card-presence,.card-sensors,.card-calendar,.card-devices{grid-column:1}}
 .status-bar{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted);padding:8px 20px;border-top:1px solid rgba(255,255,255,0.5);background:rgba(255,255,255,0.7);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);flex-wrap:wrap}
 .status-dot{width:6px;height:6px;border-radius:50%;background:var(--accent2)}
 </style>
@@ -223,6 +192,33 @@ const AUTH_URL     = `https://api.athom.com/oauth2/authorise?response_type=code&
 
 const weatherCodes = {0:'Klart',1:'Mestadels klart',2:'Delvis molnigt',3:'Mulet',45:'Dimma',51:'Lätt duggregn',61:'Lätt regn',63:'Måttligt regn',65:'Kraftigt regn',71:'Lätt snö',73:'Måttlig snö',75:'Kraftig snö',80:'Skurar',95:'Åska'};
 
+// ── Hjälpfunktioner ───────────────────────────────────────────────────────
+function getSession()   { return localStorage.getItem('homey_session_token'); }
+function getRemoteUrl() { return localStorage.getItem('homey_remote_url'); }
+
+async function workerPost(path, body) {
+  const r = await fetch(`${WORKER}${path}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  return r.json();
+}
+
+// Auto-refresh access token om det gått ut
+async function ensureFreshToken() {
+  const expires = parseInt(localStorage.getItem('homey_token_expires') || '0');
+  if (Date.now() < expires - 60000) return; // fortfarande giltig
+  const refresh_token = localStorage.getItem('homey_refresh_token');
+  if (!refresh_token) return;
+  const data = await workerPost('/refresh', { refresh_token });
+  if (data.access_token) {
+    localStorage.setItem('homey_access_token',  data.access_token);
+    localStorage.setItem('homey_refresh_token', data.refresh_token);
+    localStorage.setItem('homey_token_expires', String(Date.now() + 3600 * 1000));
+  }
+}
+
 // ── Klocka ────────────────────────────────────────────────────────────────
 function updateClock() {
   const n = new Date();
@@ -271,32 +267,40 @@ async function fetchCalendar() {
 }
 fetchCalendar(); setInterval(fetchCalendar, 300000);
 
-// ── Homey — ladda enheter & sensorer ──────────────────────────────────────
+// ── Homey — ladda enheter, sensorer & närvaro ─────────────────────────────
 async function loadHomey() {
-  const session   = localStorage.getItem('homey_session_token');
-  const remoteUrl = localStorage.getItem('homey_remote_url');
+  const session   = getSession();
+  const remoteUrl = getRemoteUrl();
   if (!session || !remoteUrl) return;
 
   document.getElementById('homey-btn').textContent = 'Koppla från';
   document.getElementById('homey-btn').classList.add('connected');
   document.getElementById('status-homey').textContent   = 'Ansluten';
   document.getElementById('status-homey').style.color   = 'var(--accent2)';
-  document.getElementById('sensor-badge').textContent   = 'Live';
-  document.getElementById('sensor-badge').className     = 'badge badge-ok';
-  document.getElementById('device-badge').textContent   = 'Live';
-  document.getElementById('device-badge').className     = 'badge badge-ok';
-  document.getElementById('presence-badge').textContent = 'Live';
-  document.getElementById('presence-badge').className   = 'badge badge-ok';
 
-  // Enheter & sensorer
+  await ensureFreshToken();
+
+  // Enheter & sensorer via worker
   try {
-    const r = await fetch(`${remoteUrl}/api/manager/devices/device`, {
-      headers: { Authorization: `Bearer ${session}` }
-    });
-    if (!r.ok) { console.warn('Devices HTTP', r.status, await r.text()); return; }
-    const devices = await r.json();
-    const devArr  = Object.values(devices);
+    const data = await workerPost('/homey/devices', { session_token: session, remote_url: remoteUrl });
 
+    if (data.error) {
+      console.warn('Devices error:', data.error);
+      // Om session har gått ut — visa varning
+      if (data.error.includes('401') || String(data.error).includes('invalid')) {
+        document.getElementById('status-homey').textContent = 'Session utgången — logga in igen';
+        document.getElementById('status-homey').style.color = 'var(--warn)';
+      }
+      return;
+    }
+
+    const devArr = Object.values(data);
+    document.getElementById('sensor-badge').textContent = 'Live';
+    document.getElementById('sensor-badge').className   = 'badge badge-ok';
+    document.getElementById('device-badge').textContent = 'Live';
+    document.getElementById('device-badge').className   = 'badge badge-ok';
+
+    // Sensorer
     devArr.forEach(d => {
       const caps = d.capabilitiesObj || {};
       if (caps.measure_temperature) document.getElementById('s-temp').innerHTML  = Math.round(caps.measure_temperature.value) + '<span class="sensor-unit">°C</span>';
@@ -305,61 +309,70 @@ async function loadHomey() {
       if (caps.alarm_contact !== undefined) document.getElementById('s-door').textContent = caps.alarm_contact.value ? 'Öppen' : 'Stängd';
     });
 
+    // Enheter med on/off
     const list = document.getElementById('device-list');
     list.innerHTML = '';
-    devArr.filter(d => d.capabilitiesObj?.onoff !== undefined).slice(0, 6).forEach(d => {
-      const isOn = d.capabilitiesObj.onoff.value;
-      const icon = d.class==='light'?'💡':d.class==='lock'?'🔒':d.class==='thermostat'?'🌡️':'🔌';
-      list.innerHTML += `<div class="device"><div class="device-icon">${icon}</div><div class="device-info"><div class="device-name">${d.name}</div><div class="device-state">${isOn?'På':'Av'}</div></div><div class="toggle ${isOn?'on':''}" onclick="toggleDevice('${d.id}',${!isOn},this)"></div></div>`;
-    });
-  } catch(e) { console.warn('Devices error', e); }
+    const toggleDevices = devArr.filter(d => d.capabilitiesObj?.onoff !== undefined).slice(0, 6);
+    if (!toggleDevices.length) {
+      list.innerHTML = '<div style="color:var(--muted);font-size:13px">Inga styrenheter hittade</div>';
+    } else {
+      toggleDevices.forEach(d => {
+        const isOn = d.capabilitiesObj.onoff.value;
+        const icon = d.class==='light'?'💡':d.class==='lock'?'🔒':d.class==='thermostat'?'🌡️':'🔌';
+        list.innerHTML += `<div class="device"><div class="device-icon">${icon}</div><div class="device-info"><div class="device-name">${d.name}</div><div class="device-state">${isOn?'På':'Av'}</div></div><button class="toggle ${isOn?'on':''}" onclick="toggleDevice('${d.id}',${!isOn},this)"></button></div>`;
+      });
+    }
+  } catch(e) { console.warn('Devices fetch error', e); }
 
-  // Närvaro via PAT (worker)
+  // Närvaro via worker
   try {
-    const r = await fetch(`${WORKER}/homey/users`, { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' });
-    if (r.ok) {
-      const users = await r.json();
-      const arr   = Array.isArray(users) ? users : Object.values(users);
-      const list  = document.getElementById('presence-list');
-      if (arr.length) {
-        list.innerHTML = '';
-        arr.forEach(u => {
-          const isHome   = u.present === true;
-          const initials = (u.name||'?').split(' ').map(p=>p[0]).join('').substring(0,2).toUpperCase();
-          list.innerHTML += `<div class="person"><div class="avatar ${isHome?'home':'away'}">${initials}</div><div class="person-info"><div class="person-name">${u.name||u.id}</div><div class="person-status">${isHome?'Hemma':'Borta'}</div></div><div class="presence-dot ${isHome?'dot-home':'dot-away'}"></div></div>`;
-        });
-      }
+    const users = await workerPost('/homey/users', { session_token: session, remote_url: remoteUrl });
+    const arr   = Array.isArray(users) ? users : Object.values(users);
+    const list  = document.getElementById('presence-list');
+    if (arr.length && !arr[0]?.error) {
+      list.innerHTML = '';
+      document.getElementById('presence-badge').textContent = 'Live';
+      document.getElementById('presence-badge').className   = 'badge badge-ok';
+      arr.forEach(u => {
+        const isHome   = u.present === true;
+        const initials = (u.name||'?').split(' ').map(p=>p[0]).join('').substring(0,2).toUpperCase();
+        list.innerHTML += `<div class="person"><div class="avatar ${isHome?'home':'away'}">${initials}</div><div class="person-info"><div class="person-name">${u.name||u.id}</div><div class="person-status">${isHome?'Hemma':'Borta'}</div></div><div class="presence-dot ${isHome?'dot-home':'dot-away'}"></div></div>`;
+      });
     }
   } catch(e) { console.warn('Presence error', e); }
 }
 
 // ── Toggla enhet ──────────────────────────────────────────────────────────
 async function toggleDevice(id, newState, el) {
-  const session   = localStorage.getItem('homey_session_token');
-  const remoteUrl = localStorage.getItem('homey_remote_url');
+  const session   = getSession();
+  const remoteUrl = getRemoteUrl();
   el.classList.toggle('on');
   try {
-    await fetch(`${remoteUrl}/api/manager/devices/device/${id}/capability`, {
-      method: 'PUT',
-      headers: { Authorization: `Bearer ${session}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ capability: 'onoff', value: newState })
+    await workerPost('/homey/control', {
+      session_token: session,
+      remote_url: remoteUrl,
+      deviceId: id,
+      capability: 'onoff',
+      value: newState
     });
   } catch(e) { el.classList.toggle('on'); }
 }
 
 // ── Anslut / koppla från Homey ────────────────────────────────────────────
 function connectHomey() {
-  const session = localStorage.getItem('homey_session_token');
+  const session = getSession();
   if (session) {
-    ['homey_session_token','homey_access_token','homey_refresh_token','homey_remote_url','homey_delegation_token']
-      .forEach(k => localStorage.removeItem(k));
+    ['homey_session_token','homey_access_token','homey_refresh_token',
+     'homey_remote_url','homey_token_expires'].forEach(k => localStorage.removeItem(k));
     location.reload();
     return;
   }
   window.location.href = AUTH_URL;
 }
 
+// ── Starta ────────────────────────────────────────────────────────────────
 loadHomey();
+setInterval(loadHomey, 60000); // uppdatera enheter varje minut
 </script>
 </body>
 </html>
