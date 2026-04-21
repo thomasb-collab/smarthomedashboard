@@ -70,10 +70,15 @@ async function connect() {
   // Steg 2: Hämta user info + remoteUrl
   const s2 = addStep('Hämtar Homey-info...');
   const userInfo = await post('/userinfo', { access_token });
+  // Debug: visa alla nycklar i userInfo
+  console.log('userInfo keys:', Object.keys(userInfo));
+  console.log('userInfo.homeys:', userInfo.homeys);
+  console.log('userInfo full:', JSON.stringify(userInfo).substring(0, 1000));
+
   if (!userInfo.homeys?.length) {
     setStep(s2, 'error');
     document.getElementById('msg').textContent = 'Ingen Homey hittad';
-    document.getElementById('err').textContent = JSON.stringify(userInfo).substring(0, 200);
+    document.getElementById('err').textContent = 'Nycklar: ' + Object.keys(userInfo).join(', ') + ' | ' + JSON.stringify(userInfo).substring(0, 300);
     return;
   }
   setStep(s2, 'done');
